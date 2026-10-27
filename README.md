@@ -1,6 +1,6 @@
 # NexorAIQ | AI Commerce Search - Magento 2 Connector
 
-The **NexorAIQ Connector** (`NexorAIQ_Connector`) is the official Magento 2 extension for integrating [NexorAIQ](https://nexoraiq.com) AI-powered search, autocomplete, product discovery, and shopper telemetry.
+The **NexorAIQ Connector** (`NexorAIQ_Connector`) is the official Magento 2 extension for integrating [NexorAIQ](https://www.nexoraiq.tech) AI-powered search, autocomplete, product discovery, and shopper telemetry.
 
 It provides out-of-the-box support for **Hyvä Themes**, standard **Luma / Blank** themes, and **Headless** (PWA, React, Next.js) storefront architectures with automatic theme detection.
 
@@ -38,11 +38,13 @@ It provides out-of-the-box support for **Hyvä Themes**, standard **Luma / Blank
 
 ### 1. Install via Composer
 
-Run the following command in your Magento root directory:
+Run the following command in your Magento root directory, provided the NexorAIQ Composer package repository is configured and your credentials grant access to the package:
 
 ```bash
 composer require nexoraiq/connector
 ```
+
+**Package availability:** This command requires `nexoraiq/connector` to be published in a Composer repository available to your project. If you have not configured the repository or the package is not publicly available, use the installation/distribution instructions supplied by NexorAIQ rather than assuming Packagist can resolve it.
 
 ### 2. Enable and Deploy
 
@@ -224,16 +226,17 @@ mutation {
 }
 ```
 
-#### Telemetry: Track Shopper Event (Click, Cart Add, Conversion)
+#### Telemetry: Track Shopper Click Event
+
+The GraphQL mutation is used for shopper click events. Add-to-cart and conversion events are recorded server-side by the extension; do not send a `revenue` argument to this mutation because it is not part of the declared schema.
 
 ```graphql
 mutation {
   nexoraiqTrackEvent(
-    eventType: "CLICK" # Options: CLICK, ADD_TO_CART, CONVERSION
+    eventType: "CLICK"
     productId: "1234"
     query: "backpack"
     sessionId: "sess_abc123"
-    revenue: 49.99     # Optional (for CONVERSION)
   )
 }
 ```
@@ -270,6 +273,24 @@ Subsystem-specific log files are written under the Magento `var/log/NexoraIQ/` d
 | `var/log/NexoraIQ/admin.log` | Admin sync actions and configuration changes |
 
 ---
+
+## Validation & Release Checklist
+
+Before deploying to production, verify the following in a staging Magento installation:
+
+- Confirm the exact Magento / Adobe Commerce / Mage-OS and PHP versions supported by the package release.
+- Run Magento compilation, static content deployment where required, and cache flush; check that the module enables without DI or schema errors.
+- Verify the connection from Magento Admin and confirm the store view, credentials, and subscription state.
+- Run `bin/magento indexer:reindex nexoraiq_catalog`, confirm the indexer completes, and verify queue processing with Magento cron.
+- Test product create/update/delete, price and inventory changes, MSI reservations, autocomplete, search filters, pagination, add-to-cart, and analytics.
+- For headless integrations, test the documented GraphQL and REST contracts against the actual schema and endpoint authorization.
+- Review exposed REST endpoints and ensure synchronization or administrative operations are protected against unauthorized use and abuse.
+
+### Known documentation boundaries
+
+- The GraphQL `nexoraiqTrackEvent` mutation accepts click events; add-to-cart and conversion events are logged server-side. It does not accept a `revenue` argument.
+- The Composer install command works only when the package is published in a Composer repository accessible to the installing project.
+- The compatibility list describes the intended support range; test each production target version before deployment.
 
 ## License
 
