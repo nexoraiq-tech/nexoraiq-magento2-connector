@@ -1,0 +1,145 @@
+<?php
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ *
+ * NexorAIQ search results page: filters in the left column (sidebar.main). Markup and theme classes follow
+ * the Luma layered navigation (Magento_LayeredNavigation::layer/view.phtml, state.phtml, filter.phtml and
+ * Magento_Swatches::product/layered/renderer.phtml). js/search-page.js renders the content from the
+ * template below.
+ */
+
+declare(strict_types=1);
+
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Element\Template;
+use NexorAIQ\Connector\ViewModel\SearchPage;
+
+/** @var Escaper $escaper */
+/** @var Template $block */
+
+/** @var SearchPage $nxqPage */
+$nxqPage = $block->getData('nxq_page');
+if (!$nxqPage->isFiltersEnabled()) {
+    return;
+}
+?>
+<div class="block filter" id="layered-filter-block" hidden data-mage-init='{
+    "collapsible": {
+        "openedState": "active",
+        "collapsible": true,
+        "active": false,
+        "collateral": {
+            "openedState": "filter-active",
+            "element": "body"
+        }
+    }
+}'>
+    <div class="block-title filter-title" data-count="0">
+        <strong data-role="title"><?= $escaper->escapeHtml(__('Shop By')) ?></strong>
+    </div>
+    <div class="block-content filter-content" data-role="nxq-filter-content"></div>
+</div>
+
+<script type="text/x-magento-template" id="nxq-template-filters">
+    <% var s = data; %>
+    <% if (active.length) { %>
+        <!-- Active filtering (Magento_LayeredNavigation::layer/state.phtml) -->
+        <div class="filter-current">
+            <strong class="block-subtitle filter-current-subtitle" role="heading" aria-level="2"
+                    data-count="<%- active.length %>"><?= $escaper->escapeHtml(__('Now Shopping by')) ?></strong>
+            <ol class="items">
+                <% active.forEach(function (filter, index) { %>
+                    <li class="item">
+                        <span class="filter-label"><%- filter.name %></span>
+                        <span class="filter-value"><%- filter.label %></span>
+                        <a class="action remove" href="<%- s.removeUrl(filter) %>" data-action="remove-filter" data-index="<%- index %>"
+                           title="<?= $escaper->escapeHtmlAttr(__('Remove')) ?> <%- filter.name %> <%- filter.label %>">
+                            <span><?= $escaper->escapeHtml(__('Remove This Item')) ?></span>
+                        </a>
+                    </li>
+                <% }); %>
+            </ol>
+        </div>
+        <div class="block-actions filter-actions">
+            <a href="<%- s.clearAllUrl() %>" class="action clear filter-clear" data-action="clear-all">
+                <span><?= $escaper->escapeHtml(__('Clear All')) ?></span>
+            </a>
+        </div>
+    <% } %>
+
+    <% if (s.facets.length) { %>
+        <strong role="heading" aria-level="2" class="block-subtitle filter-subtitle"><?= $escaper->escapeHtml(__('Shopping Options')) ?></strong>
+        <div class="filter-options" id="narrow-by-list">
+            <!-- One block per aggregation returned by searchCatalog, plus Availability -->
+            <% s.facets.concat([{key: '_stock', kind: 'stock', label: '<?= $escaper->escapeJs(__('Availability')) ?>'}]).forEach(function (facet, facetIndex) { %>
+                <% var options = facet.options ? s.visibleOptions(facet) : [], open = s.openFacet === facet.key; %>
+                <% if (facet.kind === 'price' || facet.kind === 'stock' || options.length) { %>
+                    <div class="filter-options-item<%- open ? ' active' : '' %>">
+                        <div class="filter-options-title" role="button" tabindex="0" aria-expanded="<%- open ? 'true' : 'false' %>"
+                             data-action="facet-toggle" data-key="<%- facet.key %>"><%- facet.label %></div>
+                        <div class="filter-options-content"<%= open ? '' : ' style="display: none;"' %>>
+
+                            <% if (facet.kind === 'price') { %>
+                                <!-- Price range -->
+                                <form class="nxq-sp-price" data-role="nxq-price">
+                                    <label class="nxq-sr-only" for="nxq-price-from"><?= $escaper->escapeHtml(__('Minimum price')) ?></label>
+                                    <input id="nxq-price-from" name="from" class="input-text" type="number" min="0" step="any" inputmode="decimal"
+                                           value="<%- s.priceFrom %>" placeholder="<%- facet.min %>">
+                                    <span aria-hidden="true">-</span>
+                                    <label class="nxq-sr-only" for="nxq-price-to"><?= $escaper->escapeHtml(__('Maximum price')) ?></label>
+                                    <input id="nxq-price-to" name="to" class="input-text" type="number" min="0" step="any" inputmode="decimal"
+                                           value="<%- s.priceTo %>" placeholder="<%- facet.max %>">
+                                    <button type="submit" class="action primary"><span><?= $escaper->escapeHtml(__('Apply')) ?></span></button>
+                                </form>
+                            <% } else if (facet.kind === 'stock') { %>
+                                <ol class="items">
+                                    <li class="item">
+                                        <a href="<%- s.urlFor({page: 1, inStockOnly: !s.inStockOnly}) %>" rel="nofollow" class="nxq-sp-option"
+                                           role="checkbox" aria-checked="<%- s.inStockOnly ? 'true' : 'false' %>" data-action="stock">
+                                            <span><?= $escaper->escapeHtml(__('In stock only')) ?></span>
+                                        </a>
+                                    </li>
+                                </ol>
+                            <% } else if (s.isSwatchFacet(facet)) { %>
+                                <!-- Swatches: color / size (Magento_Swatches::product/layered/renderer.phtml) -->
+                                <div class="swatch-attribute swatch-layered <%- facet.key %>">
+                                    <div class="swatch-attribute-options clearfix">
+                                        <% options.forEach(function (option, optionIndex) { var swatch = s.swatch(facet, option), selected = s.isSelected(facet, option); %>
+                                            <a href="<%- s.toggleUrl(facet, option) %>" rel="nofollow" class="swatch-option-link-layered"
+                                               role="checkbox" aria-checked="<%- selected ? 'true' : 'false' %>"
+                                               aria-label="<%- facet.label %> <%- option.label %>"
+                                               data-action="toggle-option" data-facet="<%- facetIndex %>" data-option="<%- optionIndex %>">
+                                                <% if (swatch.type === 'color') { %>
+                                                    <div class="swatch-option color<%- selected ? ' selected' : '' %>" title="<%- option.label %> (<%- option.count %>)"
+                                                         style="background: <%- swatch.value %> no-repeat center; background-size: initial;"></div>
+                                                <% } else if (swatch.type === 'image') { %>
+                                                    <div class="swatch-option image<%- selected ? ' selected' : '' %>" title="<%- option.label %> (<%- option.count %>)"
+                                                         style="background: url('<%- swatch.value %>') no-repeat center; background-size: initial;"></div>
+                                                <% } else { %>
+                                                    <div class="swatch-option text<%- selected ? ' selected' : '' %>" title="<%- option.label %> (<%- option.count %>)"><%- swatch.value || option.label %></div>
+                                                <% } %>
+                                            </a>
+                                        <% }); %>
+                                    </div>
+                                </div>
+                            <% } else { %>
+                                <!-- Option list: categories and other attributes (Magento_LayeredNavigation::layer/filter.phtml), multi-select -->
+                                <ol class="items">
+                                    <% options.forEach(function (option, optionIndex) { %>
+                                        <li class="item">
+                                            <a href="<%- s.toggleUrl(facet, option) %>" rel="nofollow" class="nxq-sp-option"
+                                               role="checkbox" aria-checked="<%- s.isSelected(facet, option) ? 'true' : 'false' %>"
+                                               data-action="toggle-option" data-facet="<%- facetIndex %>" data-option="<%- optionIndex %>">
+                                                <span><%- option.label %></span><span class="count"><%- option.count %><span class="filter-count-label"><?= $escaper->escapeHtml(__('items')) ?></span></span>
+                                            </a>
+                                        </li>
+                                    <% }); %>
+                                </ol>
+                            <% } %>
+                        </div>
+                    </div>
+                <% } %>
+            <% }); %>
+        </div>
+    <% } %>
+</script>

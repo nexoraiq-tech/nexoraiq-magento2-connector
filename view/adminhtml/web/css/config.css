@@ -1,0 +1,38 @@
+/* NexorAIQ tab in Stores > Configuration: animated icon before the label.
+   The image is a vertical sprite of 30 frames (400x400 each). */
+.config-nav-block.nexoraiq-config-tab .admin__page-nav-title strong {
+    display: inline-flex;
+    align-items: center;
+}
+.config-nav-block.nexoraiq-config-tab .admin__page-nav-title strong::before {
+    content: '';
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    margin-right: 10px;
+    background-image: url('../images/nexoraiq-icon-animated-monochrome-black-transparent.webp');
+    background-repeat: no-repeat;
+    background-size: 28px 840px; /* 30 frames x 28px */
+    background-position: 0 0;
+    animation: nexoraiq-icon-sprite 1.5s steps(30) infinite;
+}
+@keyframes nexoraiq-icon-sprite {
+    from { background-position: 0 0; }
+    to { background-position: 0 -840px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .config-nav-block.nexoraiq-config-tab .admin__page-nav-title strong::before {
+        animation: none;
+        background-position: 0 -812px; /* last frame */
+    }
+}
+
+/* Read-only config inputs */
+.nexoraiq-readonly-field,
+.nexoraiq-readonly-field[disabled] {
+    background-color: #f0f0f0;
+    color: #555;
+    cursor: not-allowed;
+    opacity: 1;
+}

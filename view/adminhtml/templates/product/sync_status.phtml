@@ -1,0 +1,627 @@
+<?php
+/** @var \NexorAIQ\Connector\Block\Adminhtml\Product\SyncStatus $block */
+
+$product = $block->getProduct();
+if (!$product) {
+    return;
+}
+
+$helper = $block->getHelper();
+$sku = $product->getSku();
+$productId = $product->getId();
+$storeStatuses = $block->getStoreStatuses();
+?>
+
+<?php
+$imageHelper = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Catalog\Helper\Image::class);
+$imageUrl = $imageHelper->init($product, 'product_thumbnail_image')->getUrl();
+?>
+
+<?php
+$isExtensionEnabled = $helper->isEnabled();
+$hasConnectionKey   = !empty($helper->getConnectionKey());
+$hasActiveStores    = !empty($storeStatuses);
+
+$isSyncEnabled = $isExtensionEnabled && $hasConnectionKey && $hasActiveStores;
+
+$disabledReason = '';
+if (!$isExtensionEnabled) {
+    $disabledReason = __('NexorAIQ Extension is disabled in Stores > Configuration. Set "Enable Extension" to "Yes" to enable product sync.');
+} elseif (!$hasConnectionKey) {
+    $disabledReason = __('NexorAIQ Connection Key is missing. Configure your Connection Key in Stores > Configuration to enable product sync.');
+} elseif (!$hasActiveStores) {
+    $disabledReason = __('Activate at least one store view in NexorAIQ Dashboard to enable product sync.');
+}
+?>
+
+<div class="nexoraiq-sync-status-admin-wrapper">
+    <!-- Header Summary Card -->
+    <div class="nexoraiq-summary-card">
+        <div class="nexoraiq-summary-info">
+            <?php if ($imageUrl): ?>
+                <div class="nexoraiq-thumb-container">
+                    <img src="<?= $block->escapeUrl($imageUrl) ?>" alt="<?= $block->escapeHtml($product->getName()) ?>" class="nexoraiq-product-thumb" />
+                </div>
+            <?php endif; ?>
+            <div class="nexoraiq-summary-row">
+                <span class="nexoraiq-label"><?= __('Product ID:') ?></span>
+                <span class="nexoraiq-value"><?= $productId ?></span>
+            </div>
+            <div class="nexoraiq-summary-row">
+                <span class="nexoraiq-label"><?= __('Product SKU:') ?></span>
+                <span class="nexoraiq-value"><?= $block->escapeHtml($sku) ?></span>
+            </div>
+            <div class="nexoraiq-summary-row">
+                <span class="nexoraiq-label"><?= __('Product Status:') ?></span>
+                <span class="nexoraiq-value">
+                    <?php if ($product->getStatus() == 1): ?>
+                        <span class="nexoraiq-status-tag tag-success"><?= __('Enabled') ?></span>
+                    <?php else: ?>
+                        <span class="nexoraiq-status-tag tag-warning"><?= __('Disabled') ?></span>
+                    <?php endif; ?>
+                </span>
+            </div>
+            <div class="nexoraiq-summary-row">
+                <span class="nexoraiq-label"><?= __('Extension Status:') ?></span>
+                <span class="nexoraiq-value">
+                    <?php if ($isExtensionEnabled && $hasConnectionKey): ?>
+                        <span class="nexoraiq-status-tag tag-success"><?= __('Enabled') ?></span>
+                    <?php else: ?>
+                        <span class="nexoraiq-status-tag tag-danger"><?= __('Disabled') ?></span>
+                    <?php endif; ?>
+                </span>
+            </div>
+        </div>
+        
+        <div class="nexoraiq-summary-action">
+            <?php if ($isSyncEnabled): ?>
+                <button id="nexoraiq-sync-now-btn" class="action-secondary nexoraiq-btn-primary" type="button">
+                    <span class="btn-text"><?= __('Sync Now to NexorAIQ') ?></span>
+                    <span class="btn-spinner" style="display: none;"></span>
+                </button>
+            <?php else: ?>
+                <button id="nexoraiq-sync-now-btn" class="action-secondary nexoraiq-btn-primary nexoraiq-btn-disabled" type="button" disabled title="<?= $block->escapeHtmlAttr($disabledReason) ?>">
+                    <span class="btn-text"><?= __('Sync Now to NexorAIQ') ?></span>
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Active Store Views Status Listing -->
+    <div class="nexoraiq-stores-list">
+        <h3 class="nexoraiq-section-title"><?= __('Store View Index Statuses') ?></h3>
+        
+        <?php if (!empty($storeStatuses)): ?>
+            <div class="nexoraiq-table-responsive">
+                <table class="nexoraiq-table">
+                    <thead>
+                        <tr>
+                            <th class="th-store"><?= __('Store View') ?></th>
+                            <th class="th-code"><?= __('Code') ?></th>
+                            <th class="th-status"><?= __('Index Sync Status') ?></th>
+                            <th class="th-date"><?= __('Last Synced At') ?></th>
+                            <th class="th-fields"><?= __('Indexed Fields') ?></th>
+                        </tr>
+                    </thead>
+                    <tbody id="nexoraiq-stores-status-tbody">
+                        <?php foreach ($storeStatuses as $status): ?>
+                            <tr class="store-status-row">
+                                <td class="store-name-col">
+                                    <strong><?= $block->escapeHtml($status['store_name']) ?></strong>
+                                </td>
+                                <td class="store-code-col">
+                                    <code class="store-code-badge"><?= $status['store_code'] ?></code>
+                                </td>
+                                <td class="store-status-col">
+                                    <?php if ($status['is_synced']): ?>
+                                        <span class="nexoraiq-badge-status badge-synced">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                            <?= __('Synced & Active') ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="nexoraiq-badge-status badge-pending">
+                                            <?= __('Not Synced / Pending') ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="store-date-col">
+                                    <?php if ($status['is_synced'] && !empty($status['last_synced_at'])): ?>
+                                        <span class="sync-time-badge"><?= $status['last_synced_at'] ?></span>
+                                    <?php else: ?>
+                                        <span class="fields-placeholder">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="store-fields-col">
+                                    <?php if (!empty($status['fields'])): ?>
+                                        <?php 
+                                            $allFields = $status['fields'];
+                                            $limit = 6;
+                                            $visibleFields = array_slice($allFields, 0, $limit);
+                                            $hiddenFields  = array_slice($allFields, $limit);
+                                            $moreCount     = count($hiddenFields);
+                                        ?>
+                                        <div class="fields-list">
+                                            <?php foreach ($visibleFields as $f): ?>
+                                                <span class="field-tag"><?= $block->escapeHtml($f) ?></span>
+                                            <?php endforeach; ?>
+                                            
+                                            <?php if ($moreCount > 0): ?>
+                                                <span class="fields-extra" style="display: none;">
+                                                    <?php foreach ($hiddenFields as $f): ?>
+                                                        <span class="field-tag"><?= $block->escapeHtml($f) ?></span>
+                                                    <?php endforeach; ?>
+                                                </span>
+                                                <button type="button" class="field-toggle-btn" data-more-count="<?= $moreCount ?>" onclick="toggleFields(this)">
+                                                    +<?= $moreCount ?> <?= __('more') ?>
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="fields-placeholder">-</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php elseif (!$isExtensionEnabled): ?>
+            <div class="nexoraiq-empty-state-card card-warning">
+                <div class="empty-icon-wrapper icon-warning">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <div class="empty-state-content">
+                    <h4 class="empty-state-title warning-title"><?= __('NexorAIQ Extension Disabled') ?></h4>
+                    <p class="empty-state-desc">
+                        <?= __('The NexorAIQ extension is currently disabled in Stores > Configuration > NexorAIQ | AI Commerce Search. Set "Enable Extension" to "Yes" and configure your Connection Key to enable indexing.') ?>
+                    </p>
+                </div>
+            </div>
+        <?php elseif (!$hasConnectionKey): ?>
+            <div class="nexoraiq-empty-state-card card-warning">
+                <div class="empty-icon-wrapper icon-warning">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <div class="empty-state-content">
+                    <h4 class="empty-state-title warning-title"><?= __('Connection Key Missing') ?></h4>
+                    <p class="empty-state-desc">
+                        <?= __('Your NexorAIQ Connection Key is not configured. Paste your Connection Key in Stores > Configuration > NexorAIQ | AI Commerce Search to enable product indexing.') ?>
+                    </p>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="nexoraiq-empty-state-card">
+                <div class="empty-icon-wrapper">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                </div>
+                <div class="empty-state-content">
+                    <h4 class="empty-state-title"><?= __('No Active Store Views Enabled') ?></h4>
+                    <p class="empty-state-desc">
+                        <?= __('Activate store views in your NexorAIQ Dashboard Integration Center to enable indexing and product synchronization.') ?>
+                    </p>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<style>
+    [data-index="nexoraiq_sync_status"] {
+        display: none;
+    }
+    .nexoraiq-sync-status-admin-wrapper {
+        background: #ffffff;
+        border: 1px solid #d6d6d6;
+        border-radius: 6px;
+        padding: 24px;
+        margin-bottom: 30px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .nexoraiq-summary-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+        .nexoraiq-summary-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        .nexoraiq-summary-action {
+            width: 100%;
+        }
+        #nexoraiq-sync-now-btn {
+            width: 100%;
+        }
+    }
+
+    .nexoraiq-summary-info {
+        display: flex;
+        gap: 32px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .nexoraiq-thumb-container {
+        width: 48px;
+        height: 48px;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .nexoraiq-product-thumb {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    .nexoraiq-summary-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .nexoraiq-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: #64748b;
+        letter-spacing: 0.05em;
+    }
+
+    .nexoraiq-value {
+        font-size: 14px;
+        font-weight: 500;
+        color: #0f172a;
+    }
+
+    .nexoraiq-status-tag {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+    }
+
+    .tag-success {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .tag-warning {
+        background: #fef3c7;
+        color: #b45309;
+    }
+
+    .tag-danger {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    /* Button sync */
+    .nexoraiq-btn-primary {
+        background: #4f46e5 !important;
+        border-color: #4338ca !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        padding: 10px 20px !important;
+        border-radius: 6px !important;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.2s ease, border-color 0.2s ease;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    .nexoraiq-btn-primary:hover {
+        background: #4338ca !important;
+        border-color: #3730a3 !important;
+    }
+
+    .nexoraiq-btn-disabled {
+        background: #94a3b8 !important;
+        border-color: #94a3b8 !important;
+        color: #ffffff !important;
+        cursor: not-allowed !important;
+        opacity: 0.65 !important;
+        box-shadow: none !important;
+    }
+
+    .nexoraiq-btn-disabled:hover {
+        background: #94a3b8 !important;
+        border-color: #94a3b8 !important;
+    }
+
+    .btn-spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #ffffff;
+        animation: spin 0.8s linear infinite;
+    }
+
+    /* Empty State Card */
+    .nexoraiq-empty-state-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        padding: 20px 24px;
+        margin-top: 8px;
+    }
+
+    .card-warning {
+        background: #fffbe6 !important;
+        border: 1px solid #fde68a !important;
+    }
+
+    .empty-icon-wrapper {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .icon-warning {
+        background: #fef3c7 !important;
+    }
+
+    .empty-state-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0 0 4px 0;
+    }
+
+    .warning-title {
+        color: #92400e !important;
+    }
+
+    .empty-state-desc {
+        font-size: 13px;
+        color: #64748b;
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    /* Table styling */
+    .nexoraiq-section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #334155;
+        margin: 0 0 16px 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .nexoraiq-table-responsive {
+        overflow-x: auto;
+    }
+
+    .nexoraiq-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    .nexoraiq-table th {
+        background: #f1f5f9;
+        color: #475569;
+        font-weight: 600;
+        font-size: 12px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        white-space: nowrap;
+    }
+
+    .nexoraiq-table th.th-store { width: 140px; }
+    .nexoraiq-table th.th-code { width: 70px; }
+    .nexoraiq-table th.th-status { width: 160px; }
+    .nexoraiq-table th.th-date { width: 190px; }
+    .nexoraiq-table th.th-fields { width: auto; }
+
+    .nexoraiq-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+        font-size: 13px;
+        color: #334155;
+    }
+
+    .store-name-col { white-space: nowrap; }
+    .store-code-col { white-space: nowrap; }
+    .store-status-col { white-space: nowrap; }
+    .store-date-col { white-space: nowrap; }
+
+    .store-code-badge {
+        background: #e2e8f0;
+        color: #334155;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 11px;
+    }
+
+    .sync-time-badge {
+        background: #f8fafc;
+        color: #334155;
+        font-weight: 500;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        border: 1px solid #e2e8f0;
+        display: inline-block;
+        white-space: nowrap;
+    }
+
+    /* Badges */
+    .nexoraiq-badge-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        white-space: nowrap;
+    }
+
+    .badge-synced {
+        background: #e6fcf5;
+        color: #0ca678;
+        border: 1px solid #c3fae8;
+    }
+
+    .badge-pending {
+        background: #fff9db;
+        color: #f59f00;
+        border: 1px solid #fff3bf;
+    }
+
+    .fields-list {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .fields-extra {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .field-tag {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 3px;
+        font-size: 10px;
+        padding: 1px 4px;
+        color: #475569;
+        font-family: monospace;
+    }
+
+    .field-toggle-btn {
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1px solid #bfdbfe;
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-size: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: inline-block;
+        line-height: 14px;
+    }
+
+    .field-toggle-btn:hover {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+
+    .field-toggle-btn.expanded {
+        background: #f1f5f9;
+        color: #475569;
+        border-color: #cbd5e1;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+<script>
+    function toggleFields(btn) {
+        var extra = btn.previousElementSibling;
+        if (!extra) return;
+        if (extra.style.display === 'none' || extra.style.display === '') {
+            extra.style.display = 'inline-flex';
+            btn.innerText = '<?= __('Show less') ?>';
+            btn.classList.add('expanded');
+        } else {
+            extra.style.display = 'none';
+            btn.innerText = '+' + btn.getAttribute('data-more-count') + ' <?= __('more') ?>';
+            btn.classList.remove('expanded');
+        }
+    }
+
+    require(['jquery'], function ($) {
+        const syncUrl = '<?= $block->getSyncUrl() ?>';
+        const productId = '<?= $productId ?>';
+
+        $('#nexoraiq-sync-now-btn').click(function () {
+            const btn = $(this);
+            const text = btn.find('.btn-text');
+            const spinner = btn.find('.btn-spinner');
+
+            btn.prop('disabled', true);
+            text.text('<?= __('Syncing product...') ?>');
+            spinner.show();
+
+            $.ajax({
+                url: syncUrl,
+                type: 'POST',
+                data: {
+                    product_id: productId,
+                    form_key: window.FORM_KEY
+                },
+                dataType: 'json',
+                success: function (response) {
+                    if (response && response.success) {
+                        text.text('<?= __('Success! Reloading...') ?>');
+                        setTimeout(function () {
+                            window.location.reload();
+                        }, 800);
+                    } else {
+                        alert(response.message || '<?= __('Sync failed. Please check system.log') ?>');
+                        btn.prop('disabled', false);
+                        text.text('<?= __('Sync Now to NexorAIQ') ?>');
+                        spinner.hide();
+                    }
+                },
+                error: function (xhr, status, error) {
+                    alert('<?= __('An error occurred while calling the sync endpoint.') ?> (' + error + ')');
+                    btn.prop('disabled', false);
+                    text.text('<?= __('Sync Now to NexorAIQ') ?>');
+                    spinner.hide();
+                }
+            });
+        });
+    });
+</script>

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ */
+-->
+<!-- Luma / Blank / any non-Hyvä theme only (handle added by NexorAIQ\Connector\Observer\AddLumaLayoutHandles). -->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="NexorAIQ_Connector::css/luma/search.css"/>
+    </head>
+    <body>
+        <!-- NexorAIQ storefront search (autocomplete / overlay). The template falls back to the stock
+             Magento_Search::form.mini.phtml when takeover is off. -->
+        <referenceBlock name="top.search">
+            <arguments>
+                <argument name="nxq_search" xsi:type="object">NexorAIQ\Connector\ViewModel\StorefrontSearch</argument>
+            </arguments>
+            <action method="setTemplate">
+                <argument name="template" xsi:type="string">NexorAIQ_Connector::luma/search/form.phtml</argument>
+            </action>
+        </referenceBlock>
+    </body>
+</page>

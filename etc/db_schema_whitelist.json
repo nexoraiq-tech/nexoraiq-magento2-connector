@@ -1,0 +1,31 @@
+{
+    "nexoraiq_product_sync_status": {
+        "column": {
+            "entity_id": true,
+            "product_id": true,
+            "store_id": true,
+            "store_code": true,
+            "is_synced": true,
+            "last_synced_at": true,
+            "indexed_fields": true
+        },
+        "index": {
+            "NEXORAIQ_PRODUCT_SYNC_STATUS_PRODUCT_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "NEXORAIQ_PRODUCT_SYNC_STATUS_PRODUCT_ID_STORE_ID": true
+        }
+    },
+    "nexoraiq_sync_queue": {
+        "column": {
+            "entity_id": true,
+            "product_id": true,
+            "created_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "NEXORAIQ_SYNC_QUEUE_PRODUCT_ID": true
+        }
+    }
+}

@@ -1,0 +1,163 @@
+# Copyright © 2026 NexorAIQ. All rights reserved.
+
+type Query {
+    nexoraiQPing(key: String): NexoraiQPingResult @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\Ping") @doc(description: "NexorAIQ connectivity ping")
+    nexoraiqSearchConfig(storeId: Int!): NexoraiqConfig! @doc(description: "Retrieve search credentials and dynamic UI configuration for NexorAIQ search client.") @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\SearchConfig")
+    
+    nexoraiqSearch(
+        query: String!
+        currentPage: Int = 1
+        pageSize: Int = 12
+        category: String
+        minPrice: Float
+        maxPrice: Float
+        sortBy: String
+        inStockOnly: Boolean
+        searchType: String
+    ): NexoraIQSearchResult! @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\Search") @doc(description: "Secure reverse proxy to query the NexorAIQ Search API")
+
+    nexoraiqAutocomplete(
+        query: String!
+    ): NexoraIQAutocompleteResult! @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\Autocomplete") @doc(description: "Secure reverse proxy to fetch suggestions and autocomplete results from NexorAIQ")
+}
+
+type NexoraIQSearchResult {
+    hits: [NexoraIQProductHit!]!
+    total: Int!
+    limit: Int!
+    currentPage: Int!
+    totalPage: Int!
+    searchTimeMs: Int!
+    aggregations: NexoraIQAggregations
+}
+
+type NexoraIQProductHit {
+    id: String!
+    title: String!
+    sku: String!
+    price: Float!
+    compareAtPrice: Float
+    category: String
+    inStock: Boolean!
+    imageUrl: String
+}
+
+type NexoraIQAggregations {
+    categories: [String!]
+    tags: [String!]
+    priceRanges: [String!]
+}
+
+type NexoraIQAutocompleteResult {
+    suggestions: [String!]!
+    products: [NexoraIQProductHit!]!
+}
+
+type NexoraiQPingResult {
+    status: String
+    extension: String
+    version: String
+    platform: String
+    magento_version: String
+    edition: String
+    connection_key_configured: Boolean
+    connection_key_valid: Boolean
+    catalog_accessible: Boolean
+    product_count: Int
+    store_count: Int
+}
+
+type NexoraiqConfig {
+    general: NexoraiqGeneralConfig!
+    catalogueIndex: NexoraiqIndexConfig!
+    storefront: NexoraiqStorefrontConfig! @doc(description: "Storefront UI, search results page and add to cart settings")
+}
+
+type NexoraiqStorefrontConfig {
+    takeoverEnabled: Boolean!
+    searchLayout: String! @doc(description: "Desktop search layout (autocomplete, overlay), screens 768px and wider")
+    mobileSearchLayout: String! @doc(description: "Mobile search layout (autocomplete, overlay), screens 767px and narrower")
+    mobileBreakpoint: String! @doc(description: "Media query that selects the mobile layout")
+    autocompleteLimit: Int!
+    overlayProductsLimit: Int!
+    overlayLayoutType: String! @doc(description: "1column or 2columns")
+    suggestionsEnabled: Boolean!
+    suggestionsLabel: String
+    suggestionsLimit: Int!
+    categoriesEnabled: Boolean!
+    categoriesLabel: String
+    categoriesLimit: Int!
+    brandsEnabled: Boolean!
+    brandsLabel: String
+    brandsLimit: Int!
+    searchPageEnabled: Boolean!
+    searchPageRoute: String
+    searchPagePerPage: Int!
+    searchPageShowFilters: Boolean!
+    addToCartOnOverlay: Boolean!
+    addToCartOnSearchPage: Boolean!
+    addToCartLabel: String
+    afterAddToCart: String
+}
+
+type NexoraiqGeneralConfig {
+    enabled: Boolean!
+    apiUrl: String!
+    publicSearchKey: String!
+    searchType: String @doc(description: "Configured search strategy: keyword, vector, or hybrid")
+}
+
+type NexoraiqIndexConfig {
+    isMultiBrand: Boolean!
+    brandAttribute: String
+    ignoreDescription: Boolean!
+}
+
+type Mutation {
+    nexoraiqTrackSearch(
+        query: String!
+        sessionId: String!
+        userId: String
+        resultsCount: Int!
+        tookMs: Int!
+        device: String
+    ): Boolean! @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\TrackTelemetry") @doc(description: "Secure reverse proxy to log storefront search query telemetry")
+
+    nexoraiqTrackEvent(
+        eventType: String! @doc(description: "CLICK. ADD_TO_CART and CONVERSION are logged server-side on add to cart and order placement.")
+        sessionId: String!
+        productId: String @doc(description: "Search hit externalId or websiteId_storeId_entityId, e.g. 1_1_20622")
+        query: String @doc(description: "Search query the product was found with.")
+    ): Boolean! @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\TrackTelemetry") @doc(description: "Log a storefront CLICK event to NexorAIQ (logEvent) for the store view of the request")
+}
+
+type StoreConfig {
+    nexoraiq_public_search_key: String @doc(description: "NexorAIQ Public Read-Only Search API Key") @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\StoreConfig\\PublicSearchKey")
+    nexoraiq_search_key: String @doc(description: "NexorAIQ Public Read-Only Search API Key (alias)") @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\StoreConfig\\PublicSearchKey")
+    nexoraiq_enable_storefront: Boolean @doc(description: "Enable Storefront UI Takeover") @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\StoreConfig\\TakeoverEnabled")
+    nexoraiq_takeover_enabled: Boolean @doc(description: "Enable Storefront UI Takeover (alias)") @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\StoreConfig\\TakeoverEnabled")
+    nexoraiq_api_url: String @doc(description: "NexorAIQ API Base URL") @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\StoreConfig\\ApiUrl")
+    nexoraiq_search_type: String @doc(description: "NexorAIQ Search Type Strategy (keyword, vector, hybrid)") @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\StoreConfig\\SearchType")
+    nexoraiq_search_layout: String @doc(description: "NexorAIQ desktop search layout (autocomplete, overlay), screens 768px and wider")
+    nexoraiq_mobile_search_layout: String @doc(description: "NexorAIQ mobile search layout (autocomplete, overlay), screens 767px and narrower")
+    nexoraiq_autocomplete_limit: Int @doc(description: "NexorAIQ Autocomplete products limit")
+    nexoraiq_overlay_products_limit: Int @doc(description: "NexorAIQ Overlay products limit")
+    nexoraiq_overlay_layout_type: String @doc(description: "NexorAIQ Overlay layout type (1column, 2columns)")
+    nexoraiq_suggestions_enabled: Boolean @doc(description: "NexorAIQ Show Suggestions block in 2 column overlay")
+    nexoraiq_suggestions_label: String @doc(description: "NexorAIQ Suggestions block heading")
+    nexoraiq_suggestions_limit: Int @doc(description: "NexorAIQ Suggestions block limit")
+    nexoraiq_categories_enabled: Boolean @doc(description: "NexorAIQ Show Categories block in 2 column overlay")
+    nexoraiq_categories_label: String @doc(description: "NexorAIQ Categories block heading")
+    nexoraiq_categories_limit: Int @doc(description: "NexorAIQ Categories block limit")
+    nexoraiq_brands_enabled: Boolean @doc(description: "NexorAIQ Show Brands block in 2 column overlay")
+    nexoraiq_brands_label: String @doc(description: "NexorAIQ Brands block heading")
+    nexoraiq_brands_limit: Int @doc(description: "NexorAIQ Brands block limit")
+    nexoraiq_search_page_enabled: Boolean @doc(description: "NexorAIQ Enable Search Results Page")
+    nexoraiq_search_page_route: String @doc(description: "NexorAIQ Search Results Page URL path, e.g. search")
+    nexoraiq_search_page_per_page: Int @doc(description: "NexorAIQ Search Results Page products per page")
+    nexoraiq_search_page_show_filters: Boolean @doc(description: "NexorAIQ Search Results Page show filters")
+    nexoraiq_add_to_cart_on_overlay: Boolean @doc(description: "NexorAIQ show Add to Cart on the search overlay")
+    nexoraiq_add_to_cart_on_search_page: Boolean @doc(description: "NexorAIQ show Add to Cart on the search results page")
+    nexoraiq_add_to_cart_label: String @doc(description: "NexorAIQ Add to Cart button label")
+    nexoraiq_after_add_to_cart: String @doc(description: "NexorAIQ action after adding to cart (source: AfterAddToCart)")
+}

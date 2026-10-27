@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/Route/etc/route.xsd">
+    <router id="standard">
+        <route id="nexoraiq" frontName="nexoraiq">
+            <module name="NexorAIQ_Connector"/>
+        </route>
+    </router>
+</config>

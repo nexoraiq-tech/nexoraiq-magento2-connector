@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ */
+-->
+<!-- Hyvä themes only (handle added by Hyva_Theme). -->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- NexorAIQ storefront search (autocomplete / overlay). The template falls back to the stock form when takeover is off. -->
+        <referenceBlock name="header-search">
+            <action method="setTemplate">
+                <argument name="template" xsi:type="string">NexorAIQ_Connector::hyva/search/form.phtml</argument>
+            </action>
+        </referenceBlock>
+        <!-- window.nexoraiqProduct / window.nexoraiqCart: shared by the search overlay and the search results page -->
+        <referenceContainer name="before.body.end">
+            <block name="nexoraiq.search.shared.js" template="NexorAIQ_Connector::hyva/search/shared.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

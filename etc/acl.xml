@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2025 NexoraIQ. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magento_Backend::stores">
+                    <resource id="Magento_Backend::stores_settings">
+                        <resource id="Magento_Config::config">
+                            <resource id="NexorAIQ_Connector::config"
+                                      title="NexorAIQ | AI Commerce Search"
+                                      sortOrder="100"/>
+                        </resource>
+                    </resource>
+                </resource>
+                <!-- ACL for the /V1/nexoraiq/connection endpoint -->
+                <resource id="NexorAIQ_Connector::connection"
+                          title="NexorAIQ – Retrieve Integration Token"
+                          sortOrder="110"/>
+            </resource>
+        </resources>
+    </acl>
+</config>

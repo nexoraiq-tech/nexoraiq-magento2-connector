@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ */
+-->
+<!-- Shared by every theme: same page layout and body classes as the category page (catalog_category_view).
+     The blocks come from hyva_nexoraiq_search_index.xml (Hyvä themes) or
+     nexoraiq_luma_nexoraiq_search_index.xml (Luma / Blank / any other theme). -->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="2columns-left" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <attribute name="class" value="page-with-filter"/>
+        <attribute name="class" value="page-products"/>
+        <attribute name="class" value="nexoraiq-search-page"/>
+    </body>
+</page>

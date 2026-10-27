@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright © 2025 NexoraIQ. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Indexer/etc/indexer.xsd">
+    <indexer id="nexoraiq_catalog" view_id="nexoraiq_catalog" class="NexorAIQ\Connector\Model\Indexer\Catalog">
+        <title>NexorAIQ Catalog Search Indexer</title>
+        <description>Asynchronously synchronizes Magento product, price, and stock updates to NexorAIQ.</description>
+    </indexer>
+</config>

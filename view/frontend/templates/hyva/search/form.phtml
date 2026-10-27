@@ -1,0 +1,770 @@
+<?php
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ *
+ * Replaces the Hyvä header search form with the NexorAIQ autocomplete / overlay search UI.
+ * Falls back to the stock Hyvä form when the storefront takeover is not active.
+ */
+
+declare(strict_types=1);
+
+use Hyva\Theme\Model\ViewModelRegistry;
+use Hyva\Theme\ViewModel\HyvaCsp;
+use Hyva\Theme\ViewModel\LucideIcons;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Element\Template;
+use Magento\Search\Helper\Data as SearchHelper;
+use NexorAIQ\Connector\ViewModel\StorefrontSearch;
+
+// phpcs:disable Magento2.Templates.ThisInTemplate.FoundThis
+// phpcs:disable Magento2.Templates.ThisInTemplate.FoundHelper
+
+/** @var Escaper $escaper */
+/** @var Template $block */
+/** @var HyvaCsp $hyvaCsp */
+/** @var ViewModelRegistry $viewModels */
+
+/** @var StorefrontSearch $nxqSearch */
+$nxqSearch = $viewModels->require(StorefrontSearch::class);
+
+if (!$nxqSearch->isActive()) {
+    echo /** @noEscape */ $block->fetchView($block->getTemplateFile('Magento_Theme::html/header/search-form.phtml'));
+    return;
+}
+
+/** @var LucideIcons $lucideIcons */
+$lucideIcons = $viewModels->require(LucideIcons::class);
+
+/** @var SearchHelper $helper */
+$helper = $this->helper(SearchHelper::class);
+
+// Desktop and mobile layouts can differ; the Alpine component picks one by screen width, so the
+// markup of every layout in use is rendered (full page cache serves the same HTML to all devices).
+$hasOverlay = $nxqSearch->hasOverlay();
+$hasAutocomplete = $nxqSearch->hasAutocomplete();
+$isTwoColumns = $nxqSearch->isTwoColumns();
+$showAddToCart = $nxqSearch->isAddToCartEnabled();
+?>
+<link rel="stylesheet" href="<?= $escaper->escapeUrl($block->getViewFileUrl('NexorAIQ_Connector::css/hyva/search.css')) ?>">
+<?php if ($apiOrigin = $nxqSearch->getApiOrigin()): ?>
+<link rel="preconnect" href="<?= $escaper->escapeUrl($apiOrigin) ?>" crossorigin>
+<?php endif; ?>
+<script>
+    function initNexoraiqSearch() {
+        const config = <?= /** @noEscape */ $nxqSearch->getJsConfig() ?>;
+        const hasOverlay = <?= $hasOverlay ? 'true' : 'false' ?>;
+        const hasAutocomplete = <?= $hasAutocomplete ? 'true' : 'false' ?>;
+        const mobileMedia = window.matchMedia(config.mobileMedia || '(max-width: 767px)');
+        let controller = null;
+        let requestId = 0;
+        // Autocomplete responses already fetched in this page view, keyed by search term.
+        const autocompleteCache = new Map();
+
+        // x-session-id / x-user-id / x-device headers (window.nexoraiqContext, search/shared.phtml).
+        const context = window.nexoraiqContext;
+        const headers = extra => context.headers(extra);
+
+        const absoluteUrl = (url) => {
+            if (!url) {
+                return '';
+            }
+            return /^https?:\/\//i.test(url) ? url : window.BASE_URL + String(url).replace(/^\/+/, '');
+        };
+
+        // Same mapping as Controller\Ajax\Autocomplete::mapSuggestions(): plain strings only, and a
+        // redirect URL only when it is http(s) or site-relative.
+        const safeUrl = (url) => {
+            if (typeof url !== 'string' || url === '') {
+                return '';
+            }
+            if (/^https?:\/\//i.test(url)) {
+                return url;
+            }
+            if (url.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(url)) {
+                return '';
+            }
+            return url.replace(/^\/+/, '');
+        };
+
+        const mapSuggestions = (data, limit) => {
+            const items = data && Array.isArray(data.suggestions) ? data.suggestions : [];
+            const suggestions = [];
+            for (const item of items) {
+                if (!item || typeof item.text !== 'string' || item.text.trim() === '') {
+                    continue;
+                }
+                const parts = item.parts && typeof item.parts === 'object' ? item.parts : {};
+                const hasParts = typeof parts.match === 'string';
+                suggestions.push({
+                    text: item.text,
+                    before: hasParts ? String(parts.before || '') : item.text,
+                    match: hasParts ? parts.match : '',
+                    after: hasParts ? String(parts.after || '') : '',
+                    url: item.redirected ? safeUrl(item.url) : ''
+                });
+                if (suggestions.length >= limit) {
+                    break;
+                }
+            }
+            return suggestions;
+        };
+
+        const overlayQuery = () => `query Overlay($query: String!, $storeCode: String!, $limit: Int, $suggestion: Boolean, $category: Boolean, $brand: Boolean, $suggestionLimit: Int, $categoryLimit: Int, $brandLimit: Int) {
+            overlay(query: $query, storeCode: $storeCode, limit: $limit, suggestion: $suggestion, category: $category, brand: $brand, suggestionLimit: $suggestionLimit, categoryLimit: $categoryLimit, brandLimit: $brandLimit) {
+                products { id title sku price compareAtPrice regularPrice specialPrice discountPercent currencyCode imageUrl url externalId inStock stockStatus productType ${nexoraiqProduct.variantFields()} }
+                total
+                suggestions { text parts { before match after } redirected destinationUrl }
+                categories
+                brands
+            }
+        }`;
+        // Overlay responses already fetched in this page view, keyed by search term ('' = default products).
+        const overlayCache = new Map();
+
+        // Categories and brands come back as JSON scalars: either plain names or {name, url} objects.
+        const mapFacets = (items) => (Array.isArray(items) ? items : [])
+            .map(item => typeof item === 'string'
+                ? {label: item, count: '', url: ''}
+                : (item && (item.name || item.label)
+                    ? {label: String(item.name || item.label), count: item.count || '', url: absoluteUrl(safeUrl(item.url))}
+                    : null))
+            .filter(Boolean);
+
+        return {
+            config,
+            query: '',
+            loading: false,
+            searched: false,
+            open: false,
+            products: [],
+            total: 0,
+            suggestionItems: [],
+            autocomplete: [],
+            activeIndex: -1,
+            categories: [],
+            brands: [],
+            isMobile: mobileMedia.matches,
+
+            init() {
+                this.query = this.$refs.searchInput.value || '';
+                // Crossing the mobile breakpoint (rotation, window resize): close whatever is open
+                // and switch layout. Results are re-fetched with the new layout's limit.
+                const onChange = (event) => {
+                    if (this.open) {
+                        this.close();
+                    }
+                    autocompleteCache.clear();
+                    overlayCache.clear();
+                    this.isMobile = event.matches;
+                };
+                if (mobileMedia.addEventListener) {
+                    mobileMedia.addEventListener('change', onChange);
+                } else if (mobileMedia.addListener) {
+                    mobileMedia.addListener(onChange);
+                }
+            },
+
+            // ----- layout (desktop / mobile) -----
+            layout() {
+                const layout = this.isMobile ? (this.config.mobileLayout || this.config.layout) : this.config.layout;
+                // Fall back to a layout whose markup is on the page.
+                if (layout === 'overlay' && !hasOverlay) {
+                    return 'autocomplete';
+                }
+                return layout === 'autocomplete' && !hasAutocomplete && hasOverlay ? 'overlay' : layout;
+            },
+            isOverlay() {
+                return this.layout() === 'overlay';
+            },
+            showDropdown() {
+                return this.open && !this.isOverlay();
+            },
+            showOverlayPanel() {
+                return this.open && this.isOverlay();
+            },
+            productsLimit() {
+                return (this.isOverlay() ? this.config.overlayLimit : this.config.autocompleteLimit) || this.config.productsLimit;
+            },
+            onClickOutside() {
+                if (!this.isOverlay()) {
+                    this.close();
+                }
+            },
+            onEscape() {
+                if (!this.isOverlay()) {
+                    this.close();
+                }
+            },
+            onArrowDown(event) {
+                if (!this.isOverlay()) {
+                    event.preventDefault();
+                    this.moveDown();
+                }
+            },
+            onArrowUp(event) {
+                if (!this.isOverlay()) {
+                    event.preventDefault();
+                    this.moveUp();
+                }
+            },
+
+            // ----- input handling -----
+            onInput() {
+                if (this.isOverlay() && !this.open) {
+                    this.openOverlay();
+                    return;
+                }
+                this.runSearch();
+            },
+            onFocus() {
+                if (this.isOverlay()) {
+                    // Opening the overlay loads the default products (query "") straight away.
+                    this.openOverlay();
+                    return;
+                }
+                if (this.query.trim().length && this.autocomplete.length) {
+                    this.open = true;
+                }
+            },
+            runSearch() {
+                const term = this.query.trim();
+                if (!this.isOverlay()) {
+                    // Autocomplete: query the NexorAIQ API on every keystroke, from the first character.
+                    if (!term.length) {
+                        this.reset();
+                        return;
+                    }
+                    this.open = true;
+                    this.fetchAutocomplete(term);
+                    return;
+                }
+                // Overlay: every keystroke (and the empty query) goes to the GraphQL overlay query.
+                this.fetchOverlay(term);
+            },
+            reset() {
+                if (controller) {
+                    controller.abort();
+                }
+                this.loading = false;
+                this.searched = false;
+                this.products = [];
+                this.total = 0;
+                this.suggestionItems = [];
+                this.autocomplete = [];
+                this.activeIndex = -1;
+                this.categories = [];
+                this.brands = [];
+                if (!this.isOverlay()) {
+                    this.open = false;
+                }
+            },
+
+            // ----- data -----
+            fetchOverlay(term) {
+                if (controller) {
+                    controller.abort();
+                }
+                const current = ++requestId;
+                const cacheKey = term.toLowerCase();
+                if (overlayCache.has(cacheKey)) {
+                    controller = null;
+                    this.showOverlay(overlayCache.get(cacheKey));
+                    return;
+                }
+                controller = new AbortController();
+                const section = type => this.config.sections.find(item => item.type === type);
+                const suggestion = section('suggestions');
+                const category = section('categories');
+                const brand = section('brands');
+                this.loading = true;
+
+                // 1 column asks for products only; 2 columns adds the blocks enabled in the admin.
+                const signal = controller.signal;
+                const request = () => fetch(this.config.graphqlUrl, {
+                    method: 'POST',
+                    signal,
+                    mode: 'cors',
+                    credentials: 'omit',
+                    headers: headers({'Content-Type': 'application/json', 'x-api-key': this.config.searchKey}),
+                    body: JSON.stringify({
+                        query: overlayQuery(),
+                        variables: {
+                            query: term,
+                            storeCode: this.config.storeView,
+                            limit: this.productsLimit(),
+                            suggestion: !!suggestion,
+                            category: !!category,
+                            brand: !!brand,
+                            suggestionLimit: suggestion ? suggestion.limit : 5,
+                            categoryLimit: category ? category.limit : 5,
+                            brandLimit: brand ? brand.limit : 5
+                        }
+                    })
+                }).then(response => response.json().catch(() => null).then(payload => {
+                    // Older APIs reject priceMin / priceMax / hasVariants: retry without them.
+                    if (nexoraiqProduct.rejectsVariantFields(payload)) {
+                        return request();
+                    }
+                    return response.ok ? payload : Promise.reject(new Error(response.status));
+                }));
+
+                request()
+                    .then(payload => {
+                        const data = (payload && payload.data && payload.data.overlay) || null;
+                        if (!data) {
+                            return Promise.reject(new Error('overlay query failed'));
+                        }
+                        const result = {
+                            products: (Array.isArray(data.products) ? data.products : []).slice(0, this.productsLimit()),
+                            total: data.total || 0,
+                            suggestions: mapSuggestions(data, suggestion ? suggestion.limit : 0)
+                                .map(item => ({label: item.text, count: '', url: item.url ? absoluteUrl(item.url) : ''})),
+                            categories: mapFacets(data.categories),
+                            brands: mapFacets(data.brands)
+                        };
+                        overlayCache.set(cacheKey, result);
+                        if (current !== requestId) {
+                            return;
+                        }
+                        this.showOverlay(result);
+                    })
+                    .catch(error => {
+                        if (error.name === 'AbortError' || current !== requestId) {
+                            return;
+                        }
+                        this.showOverlay({products: [], total: 0, suggestions: [], categories: [], brands: []});
+                    });
+            },
+            showOverlay(result) {
+                this.products = result.products;
+                this.total = result.total || result.products.length;
+                this.suggestionItems = result.suggestions;
+                this.categories = result.categories;
+                this.brands = result.brands;
+                this.loading = false;
+                this.searched = true;
+            },
+            fetchAutocomplete(term) {
+                if (controller) {
+                    controller.abort();
+                }
+                const current = ++requestId;
+                const cacheKey = term.toLowerCase();
+                if (autocompleteCache.has(cacheKey)) {
+                    controller = null;
+                    this.showAutocomplete(autocompleteCache.get(cacheKey));
+                    return;
+                }
+                controller = new AbortController();
+                this.loading = true;
+
+                // Call the NexorAIQ autocomplete API directly with the public search key; fall back to
+                // the Magento proxy (nexoraiq/ajax/autocomplete) if the direct call fails. Both send the
+                // x-session-id / x-user-id / x-device headers.
+                const direct = this.config.autocompleteApiUrl && this.config.searchKey
+                    ? fetch(this.config.autocompleteApiUrl + '?' + new URLSearchParams({
+                        q: term,
+                        type: 'query',
+                        limit: this.productsLimit(),
+                        storeView: this.config.storeView,
+                        apiKey: this.config.searchKey
+                    }), {
+                        signal: controller.signal,
+                        mode: 'cors',
+                        credentials: 'omit',
+                        headers: headers()
+                    })
+                        .then(response => response.ok ? response.json() : Promise.reject(new Error(response.status)))
+                        .then(data => ({suggestions: mapSuggestions(data, this.productsLimit())}))
+                    : Promise.reject(new Error('direct autocomplete not configured'));
+                const signal = controller.signal;
+
+                direct
+                    .catch(error => {
+                        if (error.name === 'AbortError') {
+                            throw error;
+                        }
+                        return fetch(this.config.autocompleteUrl + '?' + new URLSearchParams({q: term}), {
+                            signal,
+                            headers: headers({'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'})
+                        }).then(response => response.ok ? response.json() : Promise.reject(new Error(response.status)));
+                    })
+                    .then(data => {
+                        const suggestions = (data && Array.isArray(data.suggestions) ? data.suggestions : [])
+                            .filter(item => item && item.text)
+                            .map(item => Object.assign({}, item, {url: absoluteUrl(item.url)}));
+                        autocompleteCache.set(cacheKey, suggestions);
+                        if (current !== requestId) {
+                            return;
+                        }
+                        this.showAutocomplete(suggestions);
+                    })
+                    .catch(error => {
+                        if (error.name === 'AbortError' || current !== requestId) {
+                            return;
+                        }
+                        this.autocomplete = [];
+                        this.loading = false;
+                        this.searched = true;
+                    });
+            },
+            showAutocomplete(suggestions) {
+                this.autocomplete = suggestions;
+                this.activeIndex = -1;
+                this.loading = false;
+                this.searched = true;
+            },
+            suggestionUrl(item) {
+                return item.url || this.resultsUrl(item.text);
+            },
+            isActive(index) {
+                return index === this.activeIndex;
+            },
+            moveDown() {
+                if (!this.open || !this.autocomplete.length) {
+                    return;
+                }
+                this.activeIndex = (this.activeIndex + 1) % this.autocomplete.length;
+            },
+            moveUp() {
+                if (!this.open || !this.autocomplete.length) {
+                    return;
+                }
+                this.activeIndex = this.activeIndex <= 0 ? this.autocomplete.length - 1 : this.activeIndex - 1;
+            },
+
+            // ----- sections (2 column overlay) -----
+            sectionItems(section) {
+                const source = section.type === 'suggestions' ? this.suggestionItems
+                    : section.type === 'categories' ? this.categories
+                    : this.brands;
+                return source.slice(0, section.limit);
+            },
+            hasSectionItems() {
+                return this.config.sections.some(section => this.sectionItems(section).length);
+            },
+
+
+            // ----- add to cart (window.nexoraiqCart, search/add-to-cart.phtml) -----
+            cartState: {},
+            cartMode(product) {
+                return window.nexoraiqCart ? window.nexoraiqCart.mode(product) : 'options';
+            },
+            cartLabel(product) {
+                const state = this.cartState[product.id];
+                return state === 'adding' ? '<?= $escaper->escapeJs(__('Adding...')) ?>'
+                    : state === 'added' ? '<?= $escaper->escapeJs(__('Added')) ?>'
+                    : window.nexoraiqCart.config.label;
+            },
+            addToCart(product) {
+                if (this.cartState[product.id] === 'adding') {
+                    return;
+                }
+                this.cartState[product.id] = 'adding';
+                window.nexoraiqCart.add(product, 1, this.query).then(outcome => {
+                    this.cartState[product.id] = outcome === 'added' ? 'added' : '';
+                    if (outcome === 'added') {
+                        // Close the overlay so the mini cart drawer is visible.
+                        if (window.nexoraiqCart.config.afterAdd === 'drawer') {
+                            this.close();
+                        }
+                        setTimeout(() => {
+                            if (this.cartState[product.id] === 'added') {
+                                this.cartState[product.id] = '';
+                            }
+                        }, 2000);
+                    }
+                });
+            },
+
+            // ----- rendering helpers -----
+            productUrl(product) {
+                return absoluteUrl(product.url);
+            },
+            // Variant price range, or special price with the regular price struck through.
+            priceLabel(product) {
+                return nexoraiqProduct.priceLabel(product);
+            },
+            oldPrice(product) {
+                return nexoraiqProduct.oldPriceLabel(product);
+            },
+            resultsUrl(term) {
+                return this.config.resultUrl + '?' + new URLSearchParams({[this.config.queryParam]: term || this.query.trim()});
+            },
+            itemUrl(item) {
+                return item.url || this.resultsUrl(item.label);
+            },
+            totalLabel() {
+                return hyva.str('<?= $escaper->escapeJs(__('%1 results')) ?>', this.total);
+            },
+            viewAllLabel() {
+                return hyva.str('<?= $escaper->escapeJs(__('View all %1 results')) ?>', this.total);
+            },
+            noResultsLabel() {
+                if (!this.query.trim()) {
+                    return '<?= $escaper->escapeJs(__('No products found.')) ?>';
+                }
+                return hyva.str('<?= $escaper->escapeJs(__('No products found for "%1".')) ?>', this.query.trim());
+            },
+
+            // ----- actions -----
+            trackClick(product) {
+                window.nexoraiqAnalytics.click(product, this.query);
+            },
+            submit() {
+                const chosen = this.open && !this.isOverlay() ? this.autocomplete[this.activeIndex] : null;
+                if (chosen) {
+                    window.location.href = this.suggestionUrl(chosen);
+                    return;
+                }
+                const term = this.query.trim();
+                const input = this.$refs.searchInput;
+                if (this.isOverlay() && !this.open) {
+                    // Search icon: open the overlay (it loads results for the current query, even "").
+                    this.openOverlay();
+                    return;
+                }
+                if (term.length < this.config.minQueryLength) {
+                    input.setCustomValidity('<?= $escaper->escapeJs(
+                        __('Minimum Search query length is %1', $helper->getMinQueryLength())
+                    ) ?>');
+                    input.reportValidity();
+                    return;
+                }
+                input.setCustomValidity('');
+                window.location.href = this.resultsUrl(term);
+            },
+            openOverlay() {
+                if (this.open) {
+                    return;
+                }
+                this.open = true;
+                document.documentElement.classList.add('nxq-locked');
+                this.fetchOverlay(this.query.trim());
+                this.$nextTick(() => {
+                    const field = this.$refs.overlayInput;
+                    if (field) {
+                        field.focus();
+                        field.setSelectionRange(field.value.length, field.value.length);
+                    }
+                });
+            },
+            close() {
+                this.open = false;
+                document.documentElement.classList.remove('nxq-locked');
+            },
+            closeOverlay() {
+                this.close();
+                // Focus the submit button, not the input: focusing the input would reopen the overlay.
+                this.$refs.submitButton.focus();
+            },
+            focusAfterOpen() {
+                this.$refs.searchInput.focus();
+                this.$refs.searchInput.select();
+            },
+            isMac: /Mac|iPod|iPhone|iPad/.test(navigator.platform),
+            textShortcutModifier() {
+                return this.isMac ? '⌘ K' : 'Ctrl+K';
+            }
+        };
+    }
+
+    window.addEventListener('alpine:init', () => {
+        Alpine.data('initNexoraiqSearch', initNexoraiqSearch)
+    }, { once: true })
+</script>
+<?php $hyvaCsp->registerInlineScript() ?>
+<div
+    class="nxq-search container py-2 mx-auto text-black"
+    x-data="initNexoraiqSearch"
+    @click.outside="onClickOutside"
+>
+    <div class="nxq-anchor">
+    <search title="<?= $escaper->escapeHtmlAttr(__('Store')) ?>" role="search">
+        <form
+            id="search_mini_form"
+            class="form minisearch input-group"
+            action="<?= $escaper->escapeUrl($nxqSearch->getResultUrl()) ?>"
+            method="get"
+            @submit.prevent="submit"
+        >
+            <div class="input-group relative grow">
+                <input
+                    id="search"
+                    x-ref="searchInput"
+                    x-model="query"
+                    type="search"
+                    autocomplete="off"
+                    name="<?= $escaper->escapeHtmlAttr($helper->getQueryParamName()) ?>"
+                    value="<?= /** @noEscape */ $helper->getEscapedQueryText() ?>"
+                    placeholder="<?= $escaper->escapeHtmlAttr(__('Search entire store here...')) ?>"
+                    maxlength="<?= $escaper->escapeHtmlAttr($helper->getMaxQueryLength()) ?>"
+                    class="form-input grow"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    :aria-expanded="open"
+                    @search-open.window.debounce.10="focusAfterOpen"
+                    @input.debounce.80="onInput"
+                    @focus="onFocus"
+                    @keydown.escape="onEscape"
+                    @keydown.arrow-down="onArrowDown"
+                    @keydown.arrow-up="onArrowUp"
+                >
+                <label class="sr-only" for="search">
+                    <?= $escaper->escapeHtml(__('Search')) ?>
+                </label>
+                <kbd
+                    class="absolute top-1/2 right-8 -translate-y-1/2 hidden lg:flex
+                        gap-1 bg-white text-black border border-gray-300 rounded px-1 font-sans text-sm"
+                    x-text="textShortcutModifier"
+                ></kbd>
+            </div>
+            <button
+                type="submit"
+                x-ref="submitButton"
+                class="btn btn-primary p-2.5 rounded-s-none shrink-0"
+                title="<?= $escaper->escapeHtmlAttr(__('Search')) ?>"
+                aria-label="<?= $escaper->escapeHtmlAttr(__('Search')) ?>"
+            >
+                <?= $lucideIcons->searchHtml('', 20, 20, ['aria-hidden' => 'true']); ?>
+            </button>
+        </form>
+    </search>
+
+    <?php if ($hasAutocomplete): ?>
+        <!-- Autocomplete dropdown: query suggestions from the NexorAIQ autocomplete API -->
+        <div class="nxq-dropdown" x-cloak x-show="showDropdown" x-transition.opacity.duration.150ms>
+            <div class="nxq-status" x-show="loading && !autocomplete.length" role="status">
+                <span class="nxq-spinner" aria-hidden="true"></span><?= $escaper->escapeHtml(__('Searching...')) ?>
+            </div>
+            <div class="nxq-status" x-show="searched && !loading && !autocomplete.length" role="status">
+                <?= $escaper->escapeHtml(__('No suggestions found.')) ?>
+            </div>
+            <ul class="nxq-ac-list" x-show="autocomplete.length" role="listbox"
+                aria-label="<?= $escaper->escapeHtmlAttr(__('Search Suggestions')) ?>">
+                <template x-for="(item, index) in autocomplete" :key="item.text">
+                    <li role="option" :aria-selected="isActive(index)">
+                        <a class="nxq-suggestion" :class="{'is-active': isActive(index)}"
+                           :href="suggestionUrl(item)" @mouseenter="activeIndex = index">
+                            <?= $lucideIcons->searchHtml('nxq-suggestion-icon', 16, 16, ['aria-hidden' => 'true']); ?>
+                            <span class="nxq-suggestion-text"><span x-text="item.before"></span><strong x-text="item.match"></strong><span x-text="item.after"></span></span>
+                        </a>
+                    </li>
+                </template>
+            </ul>
+        </div>
+    <?php endif ?>
+    </div>
+    <?php if ($hasOverlay): ?>
+        <!-- Overlay layout: products grid (1 column), or products grid + Suggestions/Categories/Brands on the right (2 columns) -->
+        <div
+            class="nxq-overlay"
+            x-cloak
+            x-show="showOverlayPanel"
+            x-transition.opacity.duration.150ms
+            role="dialog"
+            aria-modal="true"
+            aria-label="<?= $escaper->escapeHtmlAttr(__('Search')) ?>"
+            @keydown.escape="closeOverlay"
+        >
+            <div class="nxq-overlay-bar">
+                <form class="nxq-overlay-bar-inner" @submit.prevent="submit" role="search">
+                    <label class="sr-only" for="nxq-overlay-input"><?= $escaper->escapeHtml(__('Search')) ?></label>
+                    <input
+                        id="nxq-overlay-input"
+                        class="nxq-overlay-input"
+                        x-ref="overlayInput"
+                        x-model="query"
+                        type="search"
+                        autocomplete="off"
+                        placeholder="<?= $escaper->escapeHtmlAttr(__('Search entire store here...')) ?>"
+                        maxlength="<?= $escaper->escapeHtmlAttr($helper->getMaxQueryLength()) ?>"
+                        @input.debounce.300="runSearch"
+                    >
+                    <button type="button" class="nxq-close" @click="closeOverlay"
+                            title="<?= $escaper->escapeHtmlAttr(__('Close')) ?>"
+                            aria-label="<?= $escaper->escapeHtmlAttr(__('Close search')) ?>">
+                        <?= $lucideIcons->xHtml('', 22, 22, ['aria-hidden' => 'true']); ?>
+                    </button>
+                </form>
+            </div>
+
+            <div class="nxq-overlay-scroll">
+                <div class="nxq-overlay-inner">
+                    <div class="nxq-layout<?= $isTwoColumns ? ' nxq-layout--2col' : '' ?>">
+                        <section aria-live="polite">
+                            <h2 class="nxq-heading">
+                                <span><?= $escaper->escapeHtml(__('Products')) ?></span>
+                                <small x-show="searched && total" x-text="totalLabel()"></small>
+                            </h2>
+                            <div class="nxq-status" x-show="loading && !products.length" role="status">
+                                <span class="nxq-spinner" aria-hidden="true"></span><?= $escaper->escapeHtml(__('Searching...')) ?>
+                            </div>
+                            <div class="nxq-status" x-show="searched && !loading && !products.length" x-text="noResultsLabel()"></div>
+                            <ul class="nxq-grid" x-show="products.length">
+                                <template x-for="product in products" :key="product.id">
+                                    <li>
+                                        <a class="nxq-card" :href="productUrl(product)" @click="trackClick(product)">
+                                            <span class="nxq-card-media">
+                                                <img :src="product.imageUrl" :alt="product.title" loading="lazy"
+                                                     width="240" height="240" x-show="product.imageUrl">
+                                            </span>
+                                            <span class="nxq-card-title nxq-clamp" x-text="product.title"></span>
+                                            <span class="nxq-price">
+                                                <span x-text="priceLabel(product)"></span>
+                                                <s x-show="oldPrice(product)" x-text="oldPrice(product)"></s>
+                                            </span>
+                                            <?php if (!$showAddToCart): ?>
+                                                <span class="nxq-out-of-stock" x-show="product.inStock === false">
+                                                    <?= $escaper->escapeHtml(__('Out of stock')) ?>
+                                                </span>
+                                            <?php endif ?>
+                                        </a>
+                                        <?php if ($showAddToCart): ?>
+                                            <div class="nxq-card-actions">
+                                                <button type="button" class="btn btn-primary nxq-atc" x-show="cartMode(product) === 'add'"
+                                                        :class="{'is-added': cartState[product.id] === 'added'}"
+                                                        :disabled="cartState[product.id] === 'adding'" @click="addToCart(product)"
+                                                        :aria-label="cartLabel(product) + ': ' + product.title">
+                                                    <span x-text="cartLabel(product)"></span>
+                                                </button>
+                                                <a class="btn nxq-atc nxq-atc--options" x-show="cartMode(product) === 'options'"
+                                                   :href="productUrl(product)" @click="trackClick(product)">
+                                                    <?= $escaper->escapeHtml(__('Choose Options')) ?>
+                                                </a>
+                                                <button type="button" class="btn nxq-atc" x-show="cartMode(product) === 'out'" disabled>
+                                                    <?= $escaper->escapeHtml(__('Out of stock')) ?>
+                                                </button>
+                                            </div>
+                                        <?php endif ?>
+                                    </li>
+                                </template>
+                            </ul>
+                            <a class="nxq-view-all" x-show="products.length && query.trim()" :href="resultsUrl()" x-text="viewAllLabel()"></a>
+                        </section>
+
+                        <?php if ($isTwoColumns): ?>
+                            <aside class="nxq-aside" aria-label="<?= $escaper->escapeHtmlAttr(__('Refine search')) ?>">
+                                <?php foreach ($nxqSearch->getSections() as $index => $section): ?>
+                                    <section x-show="sectionItems(config.sections[<?= (int)$index ?>]).length">
+                                        <h3 class="nxq-block-title"><?= $escaper->escapeHtml($section['label']) ?></h3>
+                                        <ul class="nxq-block-list">
+                                            <template x-for="item in sectionItems(config.sections[<?= (int)$index ?>])" :key="item.label">
+                                                <li>
+                                                    <a class="nxq-block-link" :href="itemUrl(item)">
+                                                        <span x-text="item.label"></span>
+                                                        <span class="nxq-count" x-show="item.count" x-text="item.count"></span>
+                                                    </a>
+                                                </li>
+                                            </template>
+                                        </ul>
+                                    </section>
+                                <?php endforeach ?>
+                            </aside>
+                        <?php endif ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif ?>
+</div>

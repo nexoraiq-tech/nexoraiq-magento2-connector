@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Magento\StoreGraphQl\Model\Resolver\Store\StoreConfigDataProvider">
+        <arguments>
+            <argument name="extendedConfigData" xsi:type="array">
+                <item name="nexoraiq_enable_storefront" xsi:type="string">nexoraiq/storefront_ui/takeover_enabled</item>
+                <item name="nexoraiq_takeover_enabled" xsi:type="string">nexoraiq/storefront_ui/takeover_enabled</item>
+                <item name="nexoraiq_api_url" xsi:type="string">nexoraiq/general/api_url</item>
+                <item name="nexoraiq_search_layout" xsi:type="string">nexoraiq/storefront_ui/search_layout</item>
+                <item name="nexoraiq_mobile_search_layout" xsi:type="string">nexoraiq/storefront_ui/mobile_search_layout</item>
+                <item name="nexoraiq_autocomplete_limit" xsi:type="string">nexoraiq/storefront_ui/autocomplete_limit</item>
+                <item name="nexoraiq_overlay_products_limit" xsi:type="string">nexoraiq/storefront_ui/overlay_products_limit</item>
+                <item name="nexoraiq_overlay_layout_type" xsi:type="string">nexoraiq/storefront_ui/overlay_layout_type</item>
+                <item name="nexoraiq_suggestions_enabled" xsi:type="string">nexoraiq/storefront_ui/suggestions_enabled</item>
+                <item name="nexoraiq_suggestions_label" xsi:type="string">nexoraiq/storefront_ui/suggestions_label</item>
+                <item name="nexoraiq_suggestions_limit" xsi:type="string">nexoraiq/storefront_ui/suggestions_limit</item>
+                <item name="nexoraiq_categories_enabled" xsi:type="string">nexoraiq/storefront_ui/categories_enabled</item>
+                <item name="nexoraiq_categories_label" xsi:type="string">nexoraiq/storefront_ui/categories_label</item>
+                <item name="nexoraiq_categories_limit" xsi:type="string">nexoraiq/storefront_ui/categories_limit</item>
+                <item name="nexoraiq_brands_enabled" xsi:type="string">nexoraiq/storefront_ui/brands_enabled</item>
+                <item name="nexoraiq_brands_label" xsi:type="string">nexoraiq/storefront_ui/brands_label</item>
+                <item name="nexoraiq_brands_limit" xsi:type="string">nexoraiq/storefront_ui/brands_limit</item>
+                <item name="nexoraiq_search_page_enabled" xsi:type="string">nexoraiq/search_page/enabled</item>
+                <item name="nexoraiq_search_page_route" xsi:type="string">nexoraiq/search_page/route</item>
+                <item name="nexoraiq_search_page_per_page" xsi:type="string">nexoraiq/search_page/per_page</item>
+                <item name="nexoraiq_search_page_show_filters" xsi:type="string">nexoraiq/search_page/show_filters</item>
+                <item name="nexoraiq_add_to_cart_on_overlay" xsi:type="string">nexoraiq/add_to_cart/show_on_overlay</item>
+                <item name="nexoraiq_add_to_cart_on_search_page" xsi:type="string">nexoraiq/add_to_cart/show_on_search_page</item>
+                <item name="nexoraiq_add_to_cart_label" xsi:type="string">nexoraiq/add_to_cart/button_label</item>
+                <item name="nexoraiq_after_add_to_cart" xsi:type="string">nexoraiq/add_to_cart/after_add</item>
+            </argument>
+        </arguments>
+    </type>
+</config>

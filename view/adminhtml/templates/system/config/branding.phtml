@@ -1,0 +1,91 @@
+<?php
+/** @var \NexorAIQ\Connector\Block\Adminhtml\System\Config\Branding $block */
+/** @var \Magento\Framework\Escaper $escaper */
+$version   = $block->getModuleVersion();
+$enabled   = $block->isExtensionEnabled();
+$connected = $block->isConnected();
+$realtime  = $block->isRealtimeEnabled();
+$views     = $block->getActiveStoreViewNames();
+$stats     = $block->getSyncStats();
+$website   = $block::WEBSITE_URL;
+?>
+<div class="nxq-brand">
+    <div class="nxq-brand__top">
+        <a class="nxq-brand__logo-wrap" href="<?= $escaper->escapeUrl($website) ?>" target="_blank" rel="noopener"
+           aria-label="<?= $escaper->escapeHtmlAttr(__('NexorAIQ | AI Commerce Search')) ?>"><img class="nxq-brand__logo" src="<?= $escaper->escapeUrl($block->getLogoUrl()) ?>"
+           width="210" height="68" alt="<?= $escaper->escapeHtmlAttr(__('NexorAIQ | AI Commerce Search')) ?>"/></a>
+        <div class="nxq-brand__intro">
+            <div class="nxq-brand__title"><?= $escaper->escapeHtml(__('AI Commerce Search Connector')) ?></div>
+            <p class="nxq-brand__desc">
+                <?= $escaper->escapeHtml(__('Syncs your catalog to NexorAIQ and powers AI search, autocomplete and the search results page on Hyvä and Luma storefronts.')) ?>
+            </p>
+            <div class="nxq-brand__chips">
+                <?php if ($version): ?>
+                    <span class="nxq-brand__chip"><?= $escaper->escapeHtml(__('Version %1', $version)) ?></span>
+                <?php endif; ?>
+                <span class="nxq-brand__chip"><?= $escaper->escapeHtml($block->getMagentoVersion()) ?></span>
+                <span class="nxq-brand__chip"><?= $escaper->escapeHtml(__('Hyvä + Luma')) ?></span>
+                <a class="nxq-brand__chip nxq-brand__chip--link" href="<?= $escaper->escapeUrl($website) ?>" target="_blank" rel="noopener">nexoraiq.tech &#8599;</a>
+            </div>
+        </div>
+    </div>
+    <div class="nxq-brand__stats">
+        <div class="nxq-brand__stat">
+            <span class="nxq-brand__label"><?= $escaper->escapeHtml(__('Extension')) ?></span>
+            <span class="nxq-brand__value"><i class="nxq-dot <?= $enabled ? 'is-ok' : 'is-off' ?>"></i><?= $escaper->escapeHtml($enabled ? __('Enabled') : __('Disabled')) ?></span>
+        </div>
+        <div class="nxq-brand__stat">
+            <span class="nxq-brand__label"><?= $escaper->escapeHtml(__('Connection')) ?></span>
+            <span class="nxq-brand__value"><i class="nxq-dot <?= $connected ? 'is-ok' : 'is-warn' ?>"></i><?= $escaper->escapeHtml($connected ? __('Key configured') : __('Key missing')) ?></span>
+        </div>
+        <div class="nxq-brand__stat">
+            <span class="nxq-brand__label"><?= $escaper->escapeHtml(__('Products synced')) ?></span>
+            <span class="nxq-brand__value"><?= $escaper->escapeHtml(number_format($stats['products'])) ?>
+                <?php if ($stats['queued'] > 0): ?>
+                    <small><?= $escaper->escapeHtml(__('%1 queued', number_format($stats['queued']))) ?></small>
+                <?php endif; ?>
+            </span>
+            <span class="nxq-brand__sub"><?= $escaper->escapeHtml(__('Last: %1', $block->formatLastSync($stats['last']))) ?></span>
+        </div>
+        <div class="nxq-brand__stat">
+            <span class="nxq-brand__label"><?= $escaper->escapeHtml(__('Store views')) ?></span>
+            <span class="nxq-brand__value" title="<?= $escaper->escapeHtmlAttr(implode(', ', $views)) ?>"><?= $escaper->escapeHtml(__('%1 active', count($views))) ?></span>
+            <span class="nxq-brand__sub"><?= $escaper->escapeHtml(__('Real-time sync: %1', $realtime ? __('On') : __('Off'))) ?></span>
+        </div>
+    </div>
+</div>
+<style>
+    .nxq-brand {
+        margin: 0 0 24px; border: 1px solid #e4e1f5; border-radius: 10px; background: #fff; overflow: hidden;
+        box-shadow: 0 1px 3px rgba(40, 20, 120, .06); border-top: 3px solid #6f4cf6;
+    }
+    .nxq-brand__top { display: flex; align-items: center; gap: 22px; padding: 16px 20px; flex-wrap: wrap; }
+    .nxq-brand__logo-wrap { flex: none; display: block; line-height: 0; }
+    .nxq-brand__logo { display: block; width: 210px; height: auto; }
+    .nxq-brand__intro { flex: 1; min-width: 260px; padding-left: 22px; border-left: 1px solid #ecebf3; }
+    .nxq-brand__title { font-size: 16px; font-weight: 700; color: #1f1d2e; margin-bottom: 4px; }
+    .nxq-brand__desc { font-size: 13px; color: #5d5b6e; margin: 0 0 10px; line-height: 1.45; }
+    .nxq-brand__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .nxq-brand__chip {
+        font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+        background: #f3f0ff; color: #4b33c9; border: 1px solid #e3dcff; line-height: 1.4;
+    }
+    a.nxq-brand__chip--link { text-decoration: none; background: #fff; }
+    a.nxq-brand__chip--link:hover { background: #f3f0ff; text-decoration: none; }
+    .nxq-brand__stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid #ecebf3; background: #faf9fd; }
+    .nxq-brand__stat { display: flex; flex-direction: column; gap: 2px; padding: 10px 20px; border-left: 1px solid #ecebf3; min-width: 0; }
+    .nxq-brand__stat:first-child { border-left: 0; }
+    .nxq-brand__label { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: #8b89a0; }
+    .nxq-brand__value { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: #1f1d2e; }
+    .nxq-brand__value small { font-size: 11px; font-weight: 500; color: #8a5a00; }
+    .nxq-brand__sub { font-size: 11px; color: #8b89a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nxq-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: #b5b3c4; }
+    .nxq-dot.is-ok { background: #22a35a; box-shadow: 0 0 0 3px rgba(34, 163, 90, .15); }
+    .nxq-dot.is-warn { background: #e69500; box-shadow: 0 0 0 3px rgba(230, 149, 0, .15); }
+    @media (max-width: 900px) {
+        .nxq-brand__stats { grid-template-columns: repeat(2, 1fr); }
+        .nxq-brand__stat:nth-child(3) { border-left: 0; }
+        .nxq-brand__stat:nth-child(n+3) { border-top: 1px solid #ecebf3; }
+        .nxq-brand__intro { padding-left: 0; border-left: 0; }
+    }
+</style>

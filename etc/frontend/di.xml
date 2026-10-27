@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Search results page on the URL path configured in the admin (default /search) -->
+    <type name="Magento\Framework\App\RouterList">
+        <arguments>
+            <argument name="routerList" xsi:type="array">
+                <item name="nexoraiq_search" xsi:type="array">
+                    <item name="class" xsi:type="string">NexorAIQ\Connector\Controller\Router</item>
+                    <item name="disable" xsi:type="boolean">false</item>
+                    <item name="sortOrder" xsi:type="string">25</item>
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magento\CatalogSearch\Controller\Result\Index">
+        <plugin name="nexoraiq_search_page_redirect" type="NexorAIQ\Connector\Plugin\CatalogSearchResultRedirect"/>
+    </type>
+
+    <!-- Private content section "nexoraiq": x-user-id for the browser's direct NexorAIQ API calls -->
+    <type name="Magento\Customer\CustomerData\SectionPoolInterface">
+        <arguments>
+            <argument name="sectionSourceMap" xsi:type="array">
+                <item name="nexoraiq" xsi:type="string">NexorAIQ\Connector\CustomerData\Shopper</item>
+            </argument>
+        </arguments>
+    </type>
+</config>

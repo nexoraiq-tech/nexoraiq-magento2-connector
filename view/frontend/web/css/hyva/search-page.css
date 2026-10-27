@@ -1,0 +1,131 @@
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ *
+ * NexorAIQ search results page. The page reuses the Hyvä category page markup and theme classes
+ * (toolbar, product cards, price box, layered navigation, swatches); this file only adds what the
+ * category page gets from its own templates or what the search page does differently.
+ */
+
+/* View mode icons: inline <style> in Magento_Catalog::product/list/toolbar/viewmode.phtml */
+.nexoraiq-search-page .modes-mode {
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.nexoraiq-search-page .modes-mode.mode-grid {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>');
+}
+
+.nexoraiq-search-page .modes-mode.mode-list {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>');
+}
+
+/* ---------- Filters: multi-select options show a checkbox ---------- */
+.nxq-sp-option {
+    align-items: center;
+    gap: .5rem;
+}
+
+.nxq-sp-option > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.nxq-sp-option > span:first-child::before {
+    content: "";
+    flex: none;
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid var(--form-stroke, #d1d5db);
+    border-radius: .25rem;
+    background: var(--form-bg, #fff) center / .75rem no-repeat;
+}
+
+.nxq-sp-option[aria-checked="true"] {
+    font-weight: 600;
+}
+
+.nxq-sp-option[aria-checked="true"] > span:first-child::before {
+    border-color: var(--color-primary, #1d4ed8);
+    background-color: var(--color-primary, #1d4ed8);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>');
+}
+
+.nxq-sp-swatch-color {
+    border-radius: inherit;
+}
+
+/* ---------- Price range filter ---------- */
+.nxq-sp-price {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: .5rem;
+}
+
+.nxq-sp-price .form-input {
+    width: 100%;
+    min-width: 0;
+}
+
+.nxq-sp-price .btn {
+    grid-column: 1 / -1;
+    justify-content: center;
+}
+
+/* ---------- Product list ---------- */
+.nxq-sp-busy {
+    opacity: .5;
+    transition: opacity .15s ease;
+}
+
+.nxq-sp-loading {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: #6b7280;
+}
+
+.nxq-sp-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    margin-inline-end: .5rem;
+    vertical-align: -2px;
+    border: 2px solid #e5e7eb;
+    border-top-color: var(--color-primary, #1d4ed8);
+    border-radius: 9999px;
+    animation: nxq-sp-spin .7s linear infinite;
+}
+
+@keyframes nxq-sp-spin {
+    to { transform: rotate(360deg); }
+}
+
+.nexoraiq-search-page .products-grid .product-info .pt-1 {
+    text-align: center;
+}
+
+.nxq-sp-price-range .price-container {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    gap: .25rem;
+}
+
+.nxq-sp-description {
+    color: #4b5563;
+    font-size: .875rem;
+}
+
+.nxq-sp-stock {
+    color: #b91c1c;
+    font-size: .875rem;
+    font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nxq-sp-spinner { animation-duration: 2s; }
+}

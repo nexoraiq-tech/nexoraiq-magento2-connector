@@ -1,0 +1,247 @@
+<?php
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ *
+ * Replaces the header search form (Magento_Search::form.mini.phtml) with the NexorAIQ autocomplete /
+ * overlay search UI (js/search-form.js). Falls back to the stock form when the storefront takeover is
+ * not active.
+ */
+
+declare(strict_types=1);
+
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Element\Template;
+use Magento\Search\ViewModel\ConfigProvider;
+use NexorAIQ\Connector\ViewModel\StorefrontSearch;
+
+/** @var Escaper $escaper */
+/** @var Template $block */
+
+/** @var StorefrontSearch $nxqSearch */
+$nxqSearch = $block->getData('nxq_search');
+
+if (!$nxqSearch || !$nxqSearch->isActive()) {
+    echo /** @noEscape */ $block->fetchView($block->getTemplateFile('Magento_Search::form.mini.phtml'));
+    return;
+}
+
+/** @var ConfigProvider $configProvider */
+$configProvider = $block->getData('configProvider');
+$helper = $configProvider->getSearchHelperData();
+
+// Desktop and mobile layouts can differ; js/search-form.js picks one by screen width, so the
+// markup of every layout in use is rendered (full page cache serves the same HTML to all devices).
+$isOverlay = $nxqSearch->isOverlay();
+$hasOverlay = $nxqSearch->hasOverlay();
+$hasAutocomplete = $nxqSearch->hasAutocomplete();
+$isTwoColumns = $nxqSearch->isTwoColumns();
+$searchIcon = '<svg class="nxq-suggestion-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
+
+$jsConfig = array_merge($nxqSearch->getJsConfigData(), [
+    'labels' => [
+        'results'        => (string)__('%1 results'),
+        'viewAll'        => (string)__('View all %1 results'),
+        'noResults'      => (string)__('No products found.'),
+        'noResultsFor'   => (string)__('No products found for "%1".'),
+        'adding'         => (string)__('Adding...'),
+        'added'          => (string)__('Added'),
+        'minQueryLength' => (string)__('Minimum Search query length is %1', $helper->getMinQueryLength()),
+    ],
+]);
+?>
+<?php if ($apiOrigin = $nxqSearch->getApiOrigin()): ?>
+<link rel="preconnect" href="<?= $escaper->escapeUrl($apiOrigin) ?>" crossorigin>
+<?php endif; ?>
+<div class="block block-search nxq-search" id="nxq-search">
+    <div class="block block-title"><strong><?= $escaper->escapeHtml(__('Search')) ?></strong></div>
+    <div class="block block-content">
+        <form class="form minisearch" id="search_mini_form"
+              action="<?= $escaper->escapeUrl($nxqSearch->getResultUrl()) ?>" method="get" role="search">
+            <div class="field search">
+                <label class="label" for="search" data-role="minisearch-label">
+                    <span><?= $escaper->escapeHtml(__('Search')) ?></span>
+                </label>
+                <div class="control">
+                    <input id="search"
+                           type="text"
+                           name="<?= $escaper->escapeHtmlAttr($helper->getQueryParamName()) ?>"
+                           value="<?= /** @noEscape */ $helper->getEscapedQueryText() ?>"
+                           placeholder="<?= $escaper->escapeHtmlAttr(__('Search entire store here...')) ?>"
+                           class="input-text"
+                           maxlength="<?= $escaper->escapeHtmlAttr($helper->getMaxQueryLength()) ?>"
+                           role="combobox"
+                           aria-haspopup="<?= $isOverlay ? 'dialog' : 'listbox' ?>"
+                           aria-autocomplete="list"
+                           aria-controls="<?= $isOverlay ? 'nxq-overlay' : 'nxq-autocomplete' ?>"
+                           autocomplete="off"
+                           aria-expanded="false"/>
+                    <?php if ($hasAutocomplete): ?>
+                        <!-- Autocomplete dropdown: query suggestions from the NexorAIQ autocomplete API -->
+                        <div class="nxq-dropdown" id="nxq-autocomplete" data-role="nxq-dropdown" hidden></div>
+                    <?php endif; ?>
+                    <?= $block->getChildHtml() ?>
+                </div>
+            </div>
+            <div class="actions">
+                <button type="submit"
+                        title="<?= $escaper->escapeHtmlAttr(__('Search')) ?>"
+                        class="action search"
+                        aria-label="<?= $escaper->escapeHtmlAttr(__('Search')) ?>">
+                    <span><?= $escaper->escapeHtml(__('Search')) ?></span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <?php if ($hasOverlay): ?>
+        <!-- Overlay layout: products grid (1 column), or products grid + Suggestions/Categories/Brands on the right (2 columns).
+             Moved to <body> by js/search-form.js. -->
+        <div class="nxq-overlay nxq-search" id="nxq-overlay" data-role="nxq-overlay" role="dialog" aria-modal="true"
+             aria-label="<?= $escaper->escapeHtmlAttr(__('Search')) ?>" hidden>
+            <div class="nxq-overlay-bar">
+                <form class="nxq-overlay-bar-inner" role="search">
+                    <label class="nxq-sr-only" for="nxq-overlay-input"><?= $escaper->escapeHtml(__('Search')) ?></label>
+                    <input id="nxq-overlay-input"
+                           class="nxq-overlay-input"
+                           data-role="nxq-overlay-input"
+                           type="search"
+                           autocomplete="off"
+                           placeholder="<?= $escaper->escapeHtmlAttr(__('Search entire store here...')) ?>"
+                           maxlength="<?= $escaper->escapeHtmlAttr($helper->getMaxQueryLength()) ?>">
+                    <button type="button" class="nxq-close" data-action="close"
+                            title="<?= $escaper->escapeHtmlAttr(__('Close')) ?>"
+                            aria-label="<?= $escaper->escapeHtmlAttr(__('Close search')) ?>">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                </form>
+            </div>
+            <div class="nxq-overlay-scroll">
+                <div class="nxq-overlay-inner">
+                    <div class="nxq-layout<?= $isTwoColumns ? ' nxq-layout--2col' : '' ?>">
+                        <section aria-live="polite" data-role="nxq-products"></section>
+                        <?php if ($isTwoColumns): ?>
+                            <aside class="nxq-aside" data-role="nxq-aside"
+                                   aria-label="<?= $escaper->escapeHtmlAttr(__('Refine search')) ?>"></aside>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>
+
+<script type="text/x-magento-template" id="nxq-template-autocomplete">
+    <% if (data.loading && !data.items.length) { %>
+        <div class="nxq-status" role="status">
+            <span class="nxq-spinner" aria-hidden="true"></span><?= $escaper->escapeHtml(__('Searching...')) ?>
+        </div>
+    <% } else if (data.searched && !data.loading && !data.items.length) { %>
+        <div class="nxq-status" role="status"><?= $escaper->escapeHtml(__('No suggestions found.')) ?></div>
+    <% } %>
+    <% if (data.items.length) { %>
+        <ul class="nxq-ac-list" role="listbox" aria-label="<?= $escaper->escapeHtmlAttr(__('Search Suggestions')) ?>">
+            <% data.items.forEach(function (item, index) { %>
+                <li role="option" id="nxq-ac-<%- index %>" aria-selected="<%- index === data.activeIndex ? 'true' : 'false' %>">
+                    <a class="nxq-suggestion<%- index === data.activeIndex ? ' is-active' : '' %>" href="<%- item.href %>" data-index="<%- index %>">
+                        <?= /** @noEscape */ $searchIcon ?>
+                        <span class="nxq-suggestion-text"><span><%- item.before %></span><strong><%- item.match %></strong><span><%- item.after %></span></span>
+                    </a>
+                </li>
+            <% }); %>
+        </ul>
+    <% } %>
+</script>
+
+<?php if ($hasOverlay): ?>
+<script type="text/x-magento-template" id="nxq-template-products">
+    <h2 class="nxq-heading">
+        <span><?= $escaper->escapeHtml(__('Products')) ?></span>
+        <% if (data.totalLabel) { %><small><%- data.totalLabel %></small><% } %>
+    </h2>
+    <% if (data.loading && !data.products.length) { %>
+        <div class="nxq-status" role="status">
+            <span class="nxq-spinner" aria-hidden="true"></span><?= $escaper->escapeHtml(__('Searching...')) ?>
+        </div>
+    <% } else if (data.searched && !data.loading && !data.products.length) { %>
+        <div class="nxq-status"><%- data.noResultsLabel %></div>
+    <% } %>
+    <% if (data.products.length) { %>
+        <ul class="nxq-grid">
+            <% data.products.forEach(function (product) { %>
+                <li>
+                    <a class="nxq-card" href="<%- product.url %>" data-action="track" data-index="<%- product.index %>">
+                        <span class="nxq-card-media">
+                            <% if (product.image) { %>
+                                <img src="<%- product.image %>" alt="<%- product.title %>" loading="lazy" width="240" height="240">
+                            <% } %>
+                        </span>
+                        <span class="nxq-card-title nxq-clamp"><%- product.title %></span>
+                        <span class="nxq-price">
+                            <span><%- product.price %></span>
+                            <% if (product.oldPrice) { %><s><%- product.oldPrice %></s><% } %>
+                        </span>
+                        <% if (!data.showAddToCart && !product.inStock) { %>
+                            <span class="nxq-out-of-stock"><?= $escaper->escapeHtml(__('Out of stock')) ?></span>
+                        <% } %>
+                    </a>
+                    <% if (data.showAddToCart) { %>
+                        <div class="nxq-card-actions">
+                            <% if (product.cartMode === 'add') { %>
+                                <button type="button" class="action primary nxq-atc<%- product.cartState === 'added' ? ' is-added' : '' %>"
+                                        data-action="add-to-cart" data-index="<%- product.index %>"
+                                        <%- product.cartState === 'adding' ? 'disabled' : '' %>
+                                        aria-label="<%- product.cartLabel + ': ' + product.title %>">
+                                    <span><%- product.cartLabel %></span>
+                                </button>
+                            <% } else if (product.cartMode === 'options') { %>
+                                <a class="action nxq-atc nxq-atc--options" href="<%- product.url %>"
+                                   data-action="track" data-index="<%- product.index %>">
+                                    <?= $escaper->escapeHtml(__('Choose Options')) ?>
+                                </a>
+                            <% } else { %>
+                                <button type="button" class="action nxq-atc" disabled>
+                                    <?= $escaper->escapeHtml(__('Out of stock')) ?>
+                                </button>
+                            <% } %>
+                        </div>
+                    <% } %>
+                </li>
+            <% }); %>
+        </ul>
+        <% if (data.viewAll) { %>
+            <a class="nxq-view-all" href="<%- data.viewAll.url %>"><%- data.viewAll.label %></a>
+        <% } %>
+    <% } %>
+</script>
+<?php endif; ?>
+
+<?php if ($isTwoColumns): ?>
+<script type="text/x-magento-template" id="nxq-template-aside">
+    <% data.sections.forEach(function (section) { %>
+        <% if (section.items.length) { %>
+            <section>
+                <h3 class="nxq-block-title"><%- section.label %></h3>
+                <ul class="nxq-block-list">
+                    <% section.items.forEach(function (item) { %>
+                        <li>
+                            <a class="nxq-block-link" href="<%- item.href %>">
+                                <span><%- item.label %></span>
+                                <% if (item.count) { %><span class="nxq-count"><%- item.count %></span><% } %>
+                            </a>
+                        </li>
+                    <% }); %>
+                </ul>
+            </section>
+        <% } %>
+    <% }); %>
+</script>
+<?php endif; ?>
+
+<script type="text/x-magento-init">
+    {
+        "#nxq-search": {
+            "nexoraiqSearchForm": <?= /** @noEscape */ json_encode($jsConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) ?>
+        }
+    }
+</script>

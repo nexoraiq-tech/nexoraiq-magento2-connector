@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ */
+-->
+<!-- Reload the "nexoraiq" section (x-user-id) whenever the customer logs in / out or changes their email -->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Customer:etc/sections.xsd">
+    <action name="customer/account/loginPost">
+        <section name="nexoraiq"/>
+    </action>
+    <action name="customer/account/createPost">
+        <section name="nexoraiq"/>
+    </action>
+    <action name="customer/account/editPost">
+        <section name="nexoraiq"/>
+    </action>
+    <action name="customer/account/logout">
+        <section name="nexoraiq"/>
+    </action>
+    <action name="customer/ajax/login">
+        <section name="nexoraiq"/>
+    </action>
+    <!-- Add to Cart from the search overlay / results page (js/cart.js): refresh the mini cart and messages -->
+    <action name="nexoraiq/cart/add">
+        <section name="cart"/>
+        <section name="messages"/>
+    </action>
+</config>

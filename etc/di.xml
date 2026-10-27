@@ -1,0 +1,292 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <preference for="NexorAIQ\Connector\Api\ConnectorInterface"
+                type="NexorAIQ\Connector\Model\Connector"/>
+    <preference for="NexorAIQ\Connector\Api\ActiveStoreViewsInterface"
+                type="NexorAIQ\Connector\Model\ActiveStoreViews"/>
+    <preference for="NexorAIQ\Connector\Api\StoreInfoInterface"
+                type="NexorAIQ\Connector\Model\StoreInfo"/>
+    <preference for="NexorAIQ\Connector\Api\Data\PingResultInterface"
+                type="NexorAIQ\Connector\Model\PingResult"/>
+
+    <preference for="NexorAIQ\Connector\Api\IntegrationInterface"
+                type="NexorAIQ\Connector\Model\IntegrationManager"/>
+
+    <preference for="NexorAIQ\Connector\Api\ConfigRepositoryInterface"
+                type="NexorAIQ\Connector\Model\ConfigRepository"/>
+
+    <preference for="NexorAIQ\Connector\Api\SearchRepositoryInterface"
+                type="NexorAIQ\Connector\Model\SearchRepository"/>
+
+    <preference for="NexorAIQ\Connector\Api\Data\ReviewSummaryInterface"
+                type="NexorAIQ\Connector\Model\Data\ReviewSummary"/>
+
+    <preference for="NexorAIQ\Connector\Api\SyncStatusInterface"
+                type="NexorAIQ\Connector\Model\SyncStatusApi"/>
+
+    <preference for="NexorAIQ\Connector\Api\Data\SyncStatusItemInterface"
+                type="NexorAIQ\Connector\Model\Data\SyncStatusItem"/>
+
+    <type name="Magento\Catalog\Api\ProductRepositoryInterface">
+        <plugin name="nexoraiq_product_repository"
+                type="NexorAIQ\Connector\Plugin\ProductRepositoryPlugin"
+                sortOrder="15"/>
+    </type>
+
+    <type name="Magento\Integration\Model\IntegrationService">
+        <plugin name="nexoraiq_prevent_integration_delete"
+                type="NexorAIQ\Connector\Plugin\PreventIntegrationDelete"
+                sortOrder="10"/>
+    </type>
+
+    <type name="Magento\Integration\Block\Adminhtml\Widget\Grid\Column\Renderer\Button\Delete">
+        <plugin name="nexoraiq_hide_integration_delete_button"
+                type="NexorAIQ\Connector\Plugin\HideIntegrationDeleteButton"
+                sortOrder="10"/>
+    </type>
+
+    <type name="Magento\InventoryApi\Api\SourceItemsSaveInterface">
+        <plugin name="nexoraiq_msi_source_items_save"
+                type="NexorAIQ\Connector\Plugin\SourceItemsSavePlugin"
+                sortOrder="10"/>
+    </type>
+
+    <type name="Magento\InventorySales\Model\PlaceReservationsForSalesEvent">
+        <plugin name="nexoraiq_msi_inventory_reservation"
+                type="NexorAIQ\Connector\Plugin\InventoryReservationPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- ==================== Per-category loggers: var/log/NexoraIQ/{category}.log ==================== -->
+
+    <type name="NexorAIQ\Connector\Logger\Cron\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">nexoraiq_cron</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">NexorAIQ\Connector\Logger\Cron\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="NexorAIQ\Connector\Logger\Observer\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">nexoraiq_observer</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">NexorAIQ\Connector\Logger\Observer\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="NexorAIQ\Connector\Logger\Plugin\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">nexoraiq_plugin</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">NexorAIQ\Connector\Logger\Plugin\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="NexorAIQ\Connector\Logger\Webhook\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">nexoraiq_webhook</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">NexorAIQ\Connector\Logger\Webhook\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="NexorAIQ\Connector\Logger\Indexer\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">nexoraiq_indexer</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">NexorAIQ\Connector\Logger\Indexer\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="NexorAIQ\Connector\Logger\Api\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">nexoraiq_api</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">NexorAIQ\Connector\Logger\Api\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="NexorAIQ\Connector\Logger\GraphQl\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">nexoraiq_graphql</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">NexorAIQ\Connector\Logger\GraphQl\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="NexorAIQ\Connector\Logger\Admin\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">nexoraiq_admin</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">NexorAIQ\Connector\Logger\Admin\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- ==================== Route each class's $logger to its category logger ==================== -->
+
+    <!-- Cron -->
+    <type name="NexorAIQ\Connector\Cron\IndexQueue">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Cron\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- Observers -->
+    <type name="NexorAIQ\Connector\Observer\ProductSaveAfter">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Observer\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Observer\ProductDeleteAfter">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Observer\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Observer\StockUpdateAfter">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Observer\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- Plugins -->
+    <type name="NexorAIQ\Connector\Plugin\InventoryReservationPlugin">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Plugin\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Plugin\SourceItemsSavePlugin">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Plugin\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Plugin\ProductRepositoryPlugin">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Plugin\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- Webhook / sync (outbound HTTP + queue/status DB writes) -->
+    <type name="NexorAIQ\Connector\Helper\Data">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Webhook\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Model\SyncQueueManager">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Webhook\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Model\SyncStatusManager">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Webhook\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Model\SyncBlockManager">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Indexer\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- Indexer -->
+    <type name="NexorAIQ\Connector\Model\Indexer\CatalogAction">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Indexer\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- Inbound REST API (webapi.xml routes) -->
+    <type name="NexorAIQ\Connector\Model\Connector">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Api\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Model\ActiveStoreViews">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Api\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Model\StoreInfo">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Api\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- GraphQL -->
+    <type name="NexorAIQ\Connector\Model\Resolver\Search">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\GraphQl\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Model\Resolver\Autocomplete">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\GraphQl\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Model\Resolver\TrackTelemetry">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\GraphQl\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Model\SearchRepository">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\GraphQl\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- Admin -->
+    <type name="NexorAIQ\Connector\Block\Adminhtml\Product\SyncStatus">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Admin\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Controller\Adminhtml\Product\Sync">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Admin\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Controller\Adminhtml\System\CheckSubscription">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Admin\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Model\Config\Backend\Enabled">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Admin\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- Analytics (NexorAIQ logEvent) -->
+    <type name="NexorAIQ\Connector\Model\Analytics\EventLogger">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Api\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Observer\Analytics\AddToCart">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Observer\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Observer\Analytics\Conversion">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Observer\Logger</argument>
+        </arguments>
+    </type>
+
+    <type name="NexorAIQ\Connector\Model\Api\Client">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Api\Logger</argument>
+        </arguments>
+    </type>
+
+</config>

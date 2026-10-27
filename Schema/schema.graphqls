@@ -1,0 +1,19 @@
+# Copyright © 2025 NexoraIQ. All rights reserved.
+
+type Query {
+    nexoraiQPing(key: String): NexoraiQPingResult @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\Ping") @doc(description: "NexorAIQ connectivity ping")
+}
+
+type NexoraiQPingResult {
+    status: String
+    extension: String
+    version: String
+    platform: String
+    magento_version: String
+    edition: String
+    connection_key_configured: Boolean
+    connection_key_valid: Boolean
+    catalog_accessible: Boolean
+    product_count: Int
+    store_count: Int
+}

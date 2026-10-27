@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
+    <extension_attributes for="Magento\Catalog\Api\Data\ProductInterface">
+        <attribute code="stock_item" type="Magento\CatalogInventory\Api\Data\StockItemInterface" />
+        <attribute code="salable_qty" type="float" />
+        <attribute code="review_summary" type="NexorAIQ\Connector\Api\Data\ReviewSummaryInterface" />
+    </extension_attributes>
+</config>

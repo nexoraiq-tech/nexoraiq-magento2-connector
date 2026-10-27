@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright © 2025 NexoraIQ. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Mview/etc/mview.xsd">
+    <view id="nexoraiq_catalog" class="NexorAIQ\Connector\Model\Indexer\Catalog" group="indexer">
+        <subscriptions>
+            <table name="catalog_product_entity" entity_column="entity_id" />
+            <table name="catalog_product_index_price" entity_column="entity_id" />
+            <table name="cataloginventory_stock_item" entity_column="product_id" />
+        </subscriptions>
+    </view>
+</config>

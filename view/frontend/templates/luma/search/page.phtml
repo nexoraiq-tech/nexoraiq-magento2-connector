@@ -1,0 +1,273 @@
+<?php
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ *
+ * NexorAIQ search results page: product list column, rendered by js/search-page.js from the template
+ * below. Markup and theme classes follow the Luma category page (Magento_Catalog::product/list.phtml,
+ * list/toolbar.phtml, html/pager.phtml and the price templates) so it looks the same.
+ */
+
+declare(strict_types=1);
+
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Element\Template;
+use NexorAIQ\Connector\ViewModel\SearchPage;
+
+/** @var Escaper $escaper */
+/** @var Template $block */
+
+/** @var SearchPage $nxqPage */
+$nxqPage = $block->getData('nxq_page');
+
+$jsConfig = array_merge($nxqPage->getJsConfigData(), [
+    'filtersSelector' => '#layered-filter-block',
+    'labels' => [
+        'category'     => (string)__('Category'),
+        'price'        => (string)__('Price'),
+        'availability' => (string)__('Availability'),
+        'inStockOnly'  => (string)__('In stock only'),
+        'andAbove'     => (string)__('%1 and above'),
+        'andBelow'     => (string)__('%1 and below'),
+        'oneItem'      => (string)__('%1 Item', 1),
+        'items'        => (string)__('%1 Items'),
+        'itemsRange'   => (string)__('Items %1-%2 of %3'),
+        'noResults'    => (string)__('Your search "%1" returned no results.'),
+        'adding'       => (string)__('Adding...'),
+        'added'        => (string)__('Added'),
+    ],
+]);
+// Same image box as the category grid (catalog view.xml: category_page_grid 240 x 300).
+$imageWidth = 240;
+$imageRatio = 125;
+?>
+<?php if ($apiOrigin = $nxqPage->getApiOrigin()): ?>
+<link rel="preconnect" href="<?= $escaper->escapeUrl($apiOrigin) ?>" crossorigin>
+<?php endif; ?>
+<div id="nxq-product-list" class="nxq-sp" aria-label="<?= $escaper->escapeHtmlAttr(__('Product list')) ?>" tabindex="-1">
+    <div class="nxq-sp-loading" role="status">
+        <span class="nxq-sp-spinner" aria-hidden="true"></span><?= $escaper->escapeHtml(__('Searching...')) ?>
+    </div>
+</div>
+
+<script type="text/x-magento-template" id="nxq-template-list">
+    <% var s = data, labels = s.labels; %>
+    <% if (!s.query) { %>
+        <div class="message info empty"><div><?= $escaper->escapeHtml(__('Enter a search term to find products.')) ?></div></div>
+    <% } else if (s.failed && !s.loading) { %>
+        <div class="message error"><div><?= $escaper->escapeHtml(__('Search is temporarily unavailable. Please try again.')) ?></div></div>
+    <% } else if (s.searched && !s.loading && !s.hits.length) { %>
+        <div class="message info empty">
+            <div>
+                <%- labels.noResults.replace('%1', s.query) %>
+                <% if (s.activeFilters().length) { %>
+                    <a href="<%- s.clearAllUrl() %>" data-action="clear-all"><?= $escaper->escapeHtml(__('Clear all filters')) ?></a>
+                <% } %>
+            </div>
+        </div>
+    <% } else if (s.loading && !s.hits.length) { %>
+        <div class="nxq-sp-loading" role="status">
+            <span class="nxq-sp-spinner" aria-hidden="true"></span><?= $escaper->escapeHtml(__('Searching...')) ?>
+        </div>
+    <% } %>
+
+    <% if (s.hits.length) { %>
+        <% ['top', 'bottom'].forEach(function (position) { %>
+            <% if (position === 'bottom') { %>
+                <!-- Products (Magento_Catalog::product/list.phtml) -->
+                <div class="products wrapper <%- s.mode %> products-<%- s.mode %><%- s.loading ? ' nxq-sp-busy' : '' %>">
+                    <ol class="products list items product-items">
+                        <% s.hits.forEach(function (hit, index) { var price = s.prices(hit), name = s.productName(hit), image = s.productImage(hit), mode = s.cartMode(hit); %>
+                            <li class="item product product-item">
+                                <div class="product-item-info" data-container="product-<%- s.mode %>">
+                                    <a href="<%- s.productUrl(hit) %>" class="product photo product-item-photo" tabindex="-1"
+                                       data-action="track" data-index="<%- index %>">
+                                        <span class="product-image-container" style="width: <?= (int)$imageWidth ?>px;">
+                                            <span class="product-image-wrapper" style="padding-bottom: <?= (int)$imageRatio ?>%;">
+                                                <% if (image) { %>
+                                                    <img class="product-image-photo" src="<%- image %>" alt="<%- name %>"
+                                                         loading="lazy" width="<?= (int)$imageWidth ?>" height="<?= (int)($imageWidth * $imageRatio / 100) ?>">
+                                                <% } %>
+                                            </span>
+                                        </span>
+                                    </a>
+                                    <div class="product details product-item-details">
+                                        <strong class="product name product-item-name">
+                                            <a class="product-item-link" href="<%- s.productUrl(hit) %>"
+                                               data-action="track" data-index="<%- index %>"><%- name %></a>
+                                        </strong>
+
+                                        <!-- Price box: special price / variant range, as the Magento_Catalog price templates -->
+                                        <div class="price-box price-final_price">
+                                            <% if (price.isRange) { %>
+                                                <p class="price-from">
+                                                    <span class="price-container price-final_price tax weee">
+                                                        <span class="price-label"><?= $escaper->escapeHtml(__('From')) ?></span>
+                                                        <span class="price-wrapper"><span class="price"><%- s.formatPrice(price.min, hit) %></span></span>
+                                                    </span>
+                                                </p>
+                                                <p class="price-to">
+                                                    <span class="price-container price-final_price tax weee">
+                                                        <span class="price-label"><?= $escaper->escapeHtml(__('To')) ?></span>
+                                                        <span class="price-wrapper"><span class="price"><%- s.formatPrice(price.max, hit) %></span></span>
+                                                    </span>
+                                                </p>
+                                            <% } else if (price.isSpecial) { %>
+                                                <span class="special-price">
+                                                    <span class="price-container price-final_price tax weee">
+                                                        <span class="price-label"><?= $escaper->escapeHtml(__('Special Price')) ?></span>
+                                                        <span class="price-wrapper"><span class="price"><%- s.formatPrice(price.final, hit) %></span></span>
+                                                    </span>
+                                                </span>
+                                                <span class="old-price">
+                                                    <span class="price-container price-final_price tax weee">
+                                                        <span class="price-label"><?= $escaper->escapeHtml(__('Regular Price')) ?></span>
+                                                        <span class="price-wrapper"><span class="price"><%- s.formatPrice(price.old, hit) %></span></span>
+                                                    </span>
+                                                </span>
+                                            <% } else { %>
+                                                <span class="normal-price">
+                                                    <span class="price-container price-final_price tax weee">
+                                                        <span class="price-wrapper"><span class="price"><%- s.formatPrice(price.final, hit) %></span></span>
+                                                    </span>
+                                                </span>
+                                            <% } %>
+                                        </div>
+
+                                        <div class="product-item-inner">
+                                            <div class="product actions product-item-actions">
+                                                <div class="actions-primary">
+                                                    <% if (mode === 'add') { %>
+                                                        <button type="button" class="action tocart primary<%- s.cartState[hit.id] === 'added' ? ' nxq-sp-added' : '' %>"
+                                                                title="<%- s.cartLabel(hit) %>" data-action="add-to-cart" data-index="<%- index %>"
+                                                                <%- s.cartState[hit.id] === 'adding' ? 'disabled' : '' %>
+                                                                aria-label="<%- s.cartLabel(hit) + ' ' + name %>">
+                                                            <span><%- s.cartLabel(hit) %></span>
+                                                        </button>
+                                                    <% } else if (mode === 'options') { %>
+                                                        <a class="action tocart primary" href="<%- s.productUrl(hit) %>"
+                                                           data-action="track" data-index="<%- index %>"
+                                                           aria-label="<?= $escaper->escapeHtmlAttr(__('Choose Options')) ?> <%- name %>">
+                                                            <span><?= $escaper->escapeHtml(__('Choose Options')) ?></span>
+                                                        </a>
+                                                    <% } else if (mode === 'out') { %>
+                                                        <div class="stock unavailable"><span><?= $escaper->escapeHtml(__('Out of stock')) ?></span></div>
+                                                    <% } %>
+                                                </div>
+                                            </div>
+                                            <% if (s.mode === 'list' && s.description(hit)) { %>
+                                                <div class="product description product-item-description"><%- s.description(hit) %></div>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        <% }); %>
+                    </ol>
+                </div>
+            <% } %>
+
+            <!-- Toolbar (Magento_Catalog::product/list/toolbar.phtml): the theme shows modes / amount / sorter
+                 on the top one and the pager / limiter on the bottom one -->
+            <div class="toolbar toolbar-products">
+                <div class="modes">
+                    <strong class="modes-label" id="nxq-modes-label-<%- position %>"><?= $escaper->escapeHtml(__('View as')) ?></strong>
+                    <% [['grid', '<?= $escaper->escapeJs(__('Grid')) ?>'], ['list', '<?= $escaper->escapeJs(__('List')) ?>']].forEach(function (mode) { %>
+                        <% if (s.mode === mode[0]) { %>
+                            <strong title="<%- mode[1] %>" class="modes-mode active mode-<%- mode[0] %>" data-value="<%- mode[0] %>"><span><%- mode[1] %></span></strong>
+                        <% } else { %>
+                            <a class="modes-mode mode-<%- mode[0] %>" title="<%- mode[1] %>" href="<%- s.urlFor({mode: mode[0]}) %>"
+                               data-action="mode" data-value="<%- mode[0] %>"><span><%- mode[1] %></span></a>
+                        <% } %>
+                    <% }); %>
+                </div>
+                <p class="toolbar-amount"><span class="toolbar-number"><%- s.amountLabel() %></span></p>
+
+                <% if (s.totalPages() > 1) { %>
+                    <!-- Pager (Magento_Theme::html/pager.phtml) -->
+                    <div class="pages">
+                        <strong class="label pages-label" id="nxq-paging-label-<%- position %>"><?= $escaper->escapeHtml(__('Page')) ?></strong>
+                        <ul class="items pages-items" aria-labelledby="nxq-paging-label-<%- position %>">
+                            <% if (s.page > 1) { %>
+                                <li class="item pages-item-previous">
+                                    <a class="action previous" href="<%- s.urlFor({page: s.page - 1}) %>" title="<?= $escaper->escapeHtmlAttr(__('Previous')) ?>"
+                                       data-action="page" data-page="<%- s.page - 1 %>">
+                                        <span class="label"><?= $escaper->escapeHtml(__('Page')) ?></span>
+                                        <span><?= $escaper->escapeHtml(__('Previous')) ?></span>
+                                    </a>
+                                </li>
+                            <% } %>
+                            <% s.pageNumbers().forEach(function (n) { %>
+                                <% if (n === s.page) { %>
+                                    <li class="item current">
+                                        <strong class="page">
+                                            <span class="label"><?= $escaper->escapeHtml(__('You\'re currently reading page')) ?></span>
+                                            <span><%- n %></span>
+                                        </strong>
+                                    </li>
+                                <% } else { %>
+                                    <li class="item">
+                                        <a href="<%- s.urlFor({page: n}) %>" class="page" data-action="page" data-page="<%- n %>">
+                                            <span class="label"><?= $escaper->escapeHtml(__('Page')) ?></span>
+                                            <span><%- n %></span>
+                                        </a>
+                                    </li>
+                                <% } %>
+                            <% }); %>
+                            <% if (s.page < s.totalPages()) { %>
+                                <li class="item pages-item-next">
+                                    <a class="action next" href="<%- s.urlFor({page: s.page + 1}) %>" title="<?= $escaper->escapeHtmlAttr(__('Next')) ?>"
+                                       data-action="page" data-page="<%- s.page + 1 %>">
+                                        <span class="label"><?= $escaper->escapeHtml(__('Page')) ?></span>
+                                        <span><?= $escaper->escapeHtml(__('Next')) ?></span>
+                                    </a>
+                                </li>
+                            <% } %>
+                        </ul>
+                    </div>
+                <% } %>
+
+                <div class="field limiter">
+                    <label class="label" for="nxq-limiter-<%- position %>"><span><?= $escaper->escapeHtml(__('Show')) ?></span></label>
+                    <div class="control">
+                        <select id="nxq-limiter-<%- position %>" data-role="limiter" class="limiter-options">
+                            <% s.config.limits.forEach(function (limit) { %>
+                                <option value="<%- limit %>"<%- limit === s.limit ? ' selected' : '' %>><%- limit %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <span class="limiter-text"><?= $escaper->escapeHtml(__('per page')) ?></span>
+                </div>
+
+                <div class="toolbar-sorter sorter">
+                    <label class="sorter-label" for="nxq-sorter-<%- position %>"><?= $escaper->escapeHtml(__('Sort By')) ?></label>
+                    <select id="nxq-sorter-<%- position %>" data-role="sorter" class="sorter-options">
+                        <option value="relevance"<%- s.sort === 'relevance' ? ' selected' : '' %>><?= $escaper->escapeHtml(__('Relevance')) ?></option>
+                        <option value="newest"<%- s.sort === 'newest' ? ' selected' : '' %>><?= $escaper->escapeHtml(__('Newest')) ?></option>
+                        <option value="price"<%- s.sort === 'price' ? ' selected' : '' %>><?= $escaper->escapeHtml(__('Price')) ?></option>
+                    </select>
+                    <% if (s.sort === 'price') { %>
+                        <% if (s.dir === 'desc') { %>
+                            <a title="<?= $escaper->escapeHtmlAttr(__('Set Ascending Direction')) ?>" href="<%- s.urlFor({dir: 'asc', page: 1}) %>"
+                               class="action sorter-action sort-desc" data-action="direction" data-value="asc">
+                                <span><?= $escaper->escapeHtml(__('Set Ascending Direction')) ?></span>
+                            </a>
+                        <% } else { %>
+                            <a title="<?= $escaper->escapeHtmlAttr(__('Set Descending Direction')) ?>" href="<%- s.urlFor({dir: 'desc', page: 1}) %>"
+                               class="action sorter-action sort-asc" data-action="direction" data-value="desc">
+                                <span><?= $escaper->escapeHtml(__('Set Descending Direction')) ?></span>
+                            </a>
+                        <% } %>
+                    <% } %>
+                </div>
+            </div>
+        <% }); %>
+    <% } %>
+</script>
+
+<script type="text/x-magento-init">
+    {
+        "#nxq-product-list": {
+            "nexoraiqSearchPage": <?= /** @noEscape */ json_encode($jsConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) ?>
+        }
+    }
+</script>

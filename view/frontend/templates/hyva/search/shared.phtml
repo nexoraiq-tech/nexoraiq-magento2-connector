@@ -1,0 +1,388 @@
+<?php
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ *
+ * Shared by the search overlay (search/form.phtml) and the search results page (search/page.phtml):
+ * - window.nexoraiqProduct: product hit helpers (prices incl. special price and variant ranges, URLs,
+ *   stock, GraphQL variant field support).
+ * - window.nexoraiqAnalytics: CLICK events (NexorAIQ logEvent, per store view) and the search attribution
+ *   cookie used for the server-side ADD_TO_CART event.
+ * - window.nexoraiqCart: Add to Cart. Posts the SKU to nexoraiq/cart/add, which forwards to
+ *   Magento's checkout/cart/add.
+ */
+
+declare(strict_types=1);
+
+use Hyva\Theme\Model\ViewModelRegistry;
+use Hyva\Theme\ViewModel\HyvaCsp;
+use Magento\Framework\Escaper;
+use NexorAIQ\Connector\Model\AddToCartConfig;
+use NexorAIQ\Connector\ViewModel\StorefrontSearch;
+
+/** @var Escaper $escaper */
+/** @var HyvaCsp $hyvaCsp */
+/** @var ViewModelRegistry $viewModels */
+
+/** @var StorefrontSearch $storefrontSearch */
+$storefrontSearch = $viewModels->require(StorefrontSearch::class);
+if (!$storefrontSearch->isActive()) {
+    return;
+}
+
+/** @var AddToCartConfig $addToCartConfig */
+$addToCartConfig = $viewModels->require(AddToCartConfig::class);
+$cartEnabled = $addToCartConfig->isOverlayEnabled() || $addToCartConfig->isSearchPageEnabled();
+?>
+<script>
+    /**
+     * Shopper context sent as headers with every NexorAIQ API call (GraphQL, search, autocomplete):
+     * x-session-id, x-user-id ("user_" + base64(email) or "guest_1") and x-device. The Magento proxies
+     * get the same headers and forward them (Model\Api\RequestContext).
+     */
+    window.nexoraiqContext = (() => {
+        const SESSION_KEY = 'nexoraiq_session_id';
+        const GUEST = 'guest_1';
+
+        const sessionId = (() => {
+            let id = '';
+            try {
+                id = window.localStorage.getItem(SESSION_KEY) || '';
+                if (!id) {
+                    id = (window.crypto && crypto.randomUUID)
+                        ? crypto.randomUUID()
+                        : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+                    window.localStorage.setItem(SESSION_KEY, id);
+                }
+            } catch (e) {
+                id = id || 'anon-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+            }
+            // Session cookie so server-side calls (GraphQL resolvers, proxies) send the same id.
+            document.cookie = SESSION_KEY + '=' + encodeURIComponent(id) + ';path=/;SameSite=Lax'
+                + (location.protocol === 'https:' ? ';Secure' : '');
+            return id;
+        })();
+
+        const device = (() => {
+            const ua = navigator.userAgent || '';
+            // iPadOS reports itself as a Mac; tell it apart by touch support.
+            const iPadOs = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
+            if (iPadOs || /iPad|Tablet|PlayBook|Silk|Kindle|Nexus (7|9|10)|Android(?!.*Mobile)/i.test(ua)) {
+                return 'web_tablet';
+            }
+            if (/Mobi|iPhone|iPod|Android|BlackBerry|IEMobile|Opera Mini|Windows Phone/i.test(ua)) {
+                return 'web_mobile';
+            }
+            return 'web_desktop';
+        })();
+
+        // From the private "nexoraiq" customer section (CustomerData\Shopper). Hyvä dispatches it only after
+        // Alpine starts, so requests made on page load use the copy Hyvä cached in local storage, as long as
+        // that cache is still valid (same checks as Hyvä's private-content.phtml).
+        let userId = (() => {
+            try {
+                const cookie = name => (document.cookie.match('(?:^|; )' + name + '=([^;]*)') || [])[1];
+                const version = cookie('private_content_version');
+                if (!cookie('mage-cache-sessid') || !version
+                    || window.localStorage.getItem('private_content_version') !== decodeURIComponent(version)) {
+                    return GUEST;
+                }
+                const cached = JSON.parse(window.localStorage.getItem('mage-cache-storage') || '{}');
+                return (cached.nexoraiq && cached.nexoraiq.userId) || GUEST;
+            } catch (e) {
+                return GUEST;
+            }
+        })();
+        window.addEventListener('private-content-loaded', event => {
+            const section = event.detail && event.detail.data && event.detail.data.nexoraiq;
+            userId = (section && section.userId) || GUEST;
+        });
+
+        return {
+            sessionId,
+            device,
+            get userId() {
+                return userId;
+            },
+            headers(extra) {
+                return Object.assign({
+                    'x-session-id': sessionId,
+                    'x-user-id': userId,
+                    'x-device': device
+                }, extra || {});
+            }
+        };
+    })();
+
+    window.nexoraiqProduct = (() => {
+        // priceMin / priceMax / hasVariants are newer API fields; an API without them rejects the whole
+        // query ("Cannot query field"), so callers retry without them and it is remembered for the session.
+        const VARIANT_FIELDS = 'priceMin priceMax hasVariants';
+        const STORAGE_KEY = 'nexoraiq_no_variant_fields';
+        let variantFieldsSupported = (() => {
+            try {
+                return window.sessionStorage.getItem(STORAGE_KEY) !== '1';
+            } catch (e) {
+                return true;
+            }
+        })();
+
+        const number = (value) => {
+            const n = Number(value);
+            return Number.isFinite(n) ? n : 0;
+        };
+
+        return {
+            variantFields() {
+                return variantFieldsSupported ? VARIANT_FIELDS : '';
+            },
+            /**
+             * True when the response rejected the variant fields; later queries leave them out.
+             */
+            rejectsVariantFields(payload) {
+                const rejected = variantFieldsSupported && Array.isArray(payload && payload.errors)
+                    && payload.errors.some(error => /Cannot query field "(priceMin|priceMax|hasVariants)"/.test(String(error && error.message)));
+                if (rejected) {
+                    variantFieldsSupported = false;
+                    try {
+                        window.sessionStorage.setItem(STORAGE_KEY, '1');
+                    } catch (e) {}
+                }
+                return rejected;
+            },
+
+            absoluteUrl(url) {
+                if (typeof url !== 'string' || url === '' || url.startsWith('//')
+                    || /^(?!https?:)[a-z][a-z0-9+.-]*:/i.test(url)) {
+                    return '';
+                }
+                return /^https?:\/\//i.test(url) ? url : window.BASE_URL + url.replace(/^\/+/, '');
+            },
+            // Names can arrive HTML-encoded ("Lumaflex&trade;"); decode without executing anything.
+            decode(text) {
+                const value = String(text || '');
+                return value.includes('&')
+                    ? (new DOMParser().parseFromString(value, 'text/html').documentElement.textContent || value)
+                    : value;
+            },
+            name(product) {
+                return this.decode(product.name || product.title);
+            },
+            image(product) {
+                return this.absoluteUrl(product.imageUrl || product.image);
+            },
+            url(product) {
+                return this.absoluteUrl(product.url);
+            },
+            type(product) {
+                return String(product.productType || product.product_type || 'simple').toLowerCase();
+            },
+            /**
+             * Variants of a configurable hit ({id: inStock}), read from its attribute values, or null for a
+             * product without variants. The API marks configurable parents out of stock (inventory 0) even when
+             * their variants are in stock; each variant's own stock is only on these attribute values.
+             */
+            variants(product) {
+                const ownId = String(product.externalId || '').split('_').pop();
+                const variants = {};
+                let found = false;
+                for (const attribute of (Array.isArray(product.attributes) ? product.attributes : [])) {
+                    for (const entry of (attribute && Array.isArray(attribute.values) ? attribute.values : [])) {
+                        const id = entry && entry.variationId != null ? String(entry.variationId) : '';
+                        if (id === '' || id === ownId || id === String(product.externalId)) {
+                            continue;
+                        }
+                        found = true;
+                        variants[id] = variants[id] || entry.inStock !== false;
+                    }
+                }
+                return found ? variants : null;
+            },
+            isInStock(product) {
+                const variants = this.variants(product);
+                if (variants) {
+                    return Object.values(variants).some(Boolean);
+                }
+                return product.inStock !== false && product.stock_status !== 'out_of_stock'
+                    && product.stockStatus !== 'out_of_stock';
+            },
+
+            formatPrice(value, currency) {
+                if (value === null || value === undefined || value === '') {
+                    return '';
+                }
+                try {
+                    if (currency) {
+                        return new Intl.NumberFormat(document.documentElement.lang || undefined, {
+                            style: 'currency',
+                            currency
+                        }).format(value);
+                    }
+                } catch (e) {}
+                return window.hyva && hyva.formatPrice ? hyva.formatPrice(value) : String(value);
+            },
+            /**
+             * {final, old, min, max, isRange, isSpecial} for a hit:
+             * - variant ranges (configurable / bundle / grouped) from priceMin / priceMax;
+             * - special price: the final price with the regular price struck through.
+             */
+            prices(product) {
+                const min = number(product.priceMin);
+                const max = number(product.priceMax);
+                if (min > 0 && max > min) {
+                    return {final: min, old: 0, min, max, isRange: true, isSpecial: false};
+                }
+                const special = number(product.specialPrice ?? product.special_price);
+                const regular = number(product.regularPrice ?? product.regular_price) || number(product.compareAtPrice);
+                let final = number(product.price) || min;
+                if (special > 0 && (!final || special < final)) {
+                    final = special;
+                }
+                const old = regular > final ? regular : 0;
+                return {final, old, min: final, max: final, isRange: false, isSpecial: old > 0};
+            },
+            priceLabel(product) {
+                const currency = product.currencyCode;
+                const price = this.prices(product);
+                return price.isRange
+                    ? this.formatPrice(price.min, currency) + ' – ' + this.formatPrice(price.max, currency)
+                    : this.formatPrice(price.final, currency);
+            },
+            oldPriceLabel(product) {
+                const price = this.prices(product);
+                return price.old ? this.formatPrice(price.old, product.currencyCode) : '';
+            }
+        };
+    })();
+    /**
+     * Storefront analytics, sent through the Magento proxy (rest/{store}/V1/nexoraiq/analytics/event) to the
+     * NexorAIQ "logEvent" mutation for this store view:
+     * - click(hit, query): CLICK on a search result; also remembers the search for that product;
+     * - remember(hit, query): keeps {sku: {q: query, p: productId}} in the "nexoraiq_attribution" cookie, so the
+     *   server can log ADD_TO_CART with the search query (Model\Analytics\Attribution).
+     */
+    window.nexoraiqAnalytics = (() => {
+        const url = '<?= $escaper->escapeJs($storefrontSearch->getTrackEventUrl()) ?>';
+        const COOKIE = 'nexoraiq_attribution';
+        const MAX_ENTRIES = 20;
+
+        // Search hits carry "{tenant}_{websiteId}_{storeId}_{entityId}" as externalId; NexorAIQ events use the
+        // last three parts.
+        const productId = hit => {
+            const match = String((hit && hit.externalId) || '').match(/(\d+_\d+_\d+)$/);
+            return match ? match[1] : String((hit && (hit.id || hit.sku)) || '');
+        };
+
+        const send = body => {
+            try {
+                fetch(url, {
+                    method: 'POST',
+                    headers: window.nexoraiqContext.headers({'Content-Type': 'application/json'}),
+                    body: JSON.stringify(Object.assign({sessionId: window.nexoraiqContext.sessionId}, body)),
+                    keepalive: true
+                }).catch(() => {});
+            } catch (e) {}
+        };
+
+        const readCookie = () => {
+            try {
+                const raw = (document.cookie.match('(?:^|; )' + COOKIE + '=([^;]*)') || [])[1];
+                const entries = raw ? JSON.parse(decodeURIComponent(raw)) : {};
+                return entries && typeof entries === 'object' ? entries : {};
+            } catch (e) {
+                return {};
+            }
+        };
+
+        const remember = (hit, query) => {
+            const sku = hit && hit.sku ? String(hit.sku) : '';
+            query = String(query || '').trim();
+            if (!sku || !query) {
+                return;
+            }
+            const entries = readCookie();
+            delete entries[sku];
+            entries[sku] = {q: query.slice(0, 100), p: productId(hit)};
+            const skus = Object.keys(entries);
+            skus.slice(0, Math.max(0, skus.length - MAX_ENTRIES)).forEach(key => delete entries[key]);
+            document.cookie = COOKIE + '=' + encodeURIComponent(JSON.stringify(entries))
+                + ';path=/;max-age=' + 30 * 86400 + ';SameSite=Lax'
+                + (location.protocol === 'https:' ? ';Secure' : '');
+        };
+
+        return {
+            productId,
+            remember,
+            click(hit, query) {
+                remember(hit, query);
+                send({eventType: 'CLICK', productId: productId(hit), query: String(query || '').trim()});
+            }
+        };
+    })();
+
+<?php if ($cartEnabled): ?>
+
+    window.nexoraiqCart = (() => {
+        const config = <?= /** @noEscape */ json_encode($addToCartConfig->getJsConfig(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES) ?>;
+        // Only these types can go to the cart without choosing options on the product page.
+        const directTypes = ['simple', 'virtual'];
+
+        return {
+            config,
+            // 'add' (button), 'options' (link to the product page) or 'out' (disabled).
+            mode(product) {
+                if (!nexoraiqProduct.isInStock(product)) {
+                    return 'out';
+                }
+                // A configurable parent can arrive typed "simple"; its variants tell it apart.
+                return directTypes.includes(nexoraiqProduct.type(product)) && !product.hasVariants
+                    && !nexoraiqProduct.variants(product) && product.sku
+                    ? 'add'
+                    : 'options';
+            },
+            /**
+             * Resolves to 'added', 'redirect' or 'error'. query: the search the product was found with.
+             */
+            add(product, qty, query) {
+                // Search the product was found with, for the ADD_TO_CART event.
+                window.nexoraiqAnalytics.remember(product, query);
+                const body = new FormData();
+                body.append('sku', product.sku);
+                body.append('qty', String(qty || 1));
+                body.append('form_key', hyva.getFormKey());
+
+                return fetch(config.url, {
+                    method: 'POST',
+                    body,
+                    headers: {'X-Requested-With': 'XMLHttpRequest'}
+                })
+                    .then(response => response.json().catch(() => ({})).then(result => ({ok: response.ok, result})))
+                    .then(({ok, result}) => {
+                        // Magento asks to go elsewhere (options required, "redirect to cart" enabled, ...).
+                        if (result.backUrl) {
+                            window.location.href = result.backUrl;
+                            return 'redirect';
+                        }
+                        // Reloads the mini cart and shows Magento's success / error messages.
+                        window.dispatchEvent(new CustomEvent('reload-customer-section-data'));
+                        if (!ok || result.error || (result.product && result.product.statusText)) {
+                            if (result.error && typeof window.dispatchMessages === 'function') {
+                                window.dispatchMessages([{type: 'error', text: result.error}], 5000);
+                            }
+                            return 'error';
+                        }
+                        if (config.afterAdd === 'cart') {
+                            window.location.href = config.cartUrl;
+                            return 'redirect';
+                        }
+                        if (config.afterAdd === 'drawer') {
+                            window.dispatchEvent(new CustomEvent('toggle-cart', {detail: {isOpen: true}}));
+                        }
+                        return 'added';
+                    })
+                    .catch(() => 'error');
+            }
+        };
+    })();
+<?php endif; ?>
+</script>
+<?php $hyvaCsp->registerInlineScript() ?>

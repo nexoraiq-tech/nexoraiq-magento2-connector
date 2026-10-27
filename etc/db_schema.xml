@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="nexoraiq_product_sync_status" resource="default" engine="innodb" comment="NexoraIQ Product Index Sync Status">
+        <column xsi:type="int" name="entity_id" padding="10" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="int" name="product_id" padding="10" unsigned="true" nullable="false" comment="Product ID"/>
+        <column xsi:type="int" name="store_id" padding="10" unsigned="true" nullable="false" default="0" comment="Store ID"/>
+        <column xsi:type="varchar" name="store_code" length="64" nullable="false" default="" comment="Store View Code"/>
+        <column xsi:type="smallint" name="is_synced" padding="6" unsigned="true" nullable="false" default="0" comment="Is Synced Flag"/>
+        <column xsi:type="timestamp" name="last_synced_at" nullable="true" on_update="true" comment="Last Synced Timestamp"/>
+        <column xsi:type="text" name="indexed_fields" nullable="true" comment="Comma-separated list of indexed fields"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="NEXORAIQ_SYNC_PROD_STORE">
+            <column name="product_id"/>
+            <column name="store_id"/>
+        </constraint>
+        <index referenceId="NEXORAIQ_SYNC_PROD_ID" indexType="btree">
+            <column name="product_id"/>
+        </index>
+    </table>
+    <table name="nexoraiq_sync_queue" resource="default" engine="innodb" comment="NexoraIQ Pending Product Sync Queue">
+        <column xsi:type="int" name="entity_id" padding="10" unsigned="true" nullable="false" identity="true" comment="Entity ID"/>
+        <column xsi:type="int" name="product_id" padding="10" unsigned="true" nullable="false" comment="Product ID"/>
+        <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" comment="Queued At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="NEXORAIQ_SYNC_QUEUE_PRODUCT_ID">
+            <column name="product_id"/>
+        </constraint>
+    </table>
+</schema>

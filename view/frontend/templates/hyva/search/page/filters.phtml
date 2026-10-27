@@ -1,0 +1,183 @@
+<?php
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ *
+ * NexorAIQ search results page: filters in the left column (sidebar.main). Markup and theme classes follow
+ * the Hyvä layered navigation (Magento_LayeredNavigation::layer/view.phtml, state.phtml, filter.phtml and
+ * Magento_Swatches::product/layered/renderer.phtml). State comes from the "nxqSearch" Alpine store that
+ * search/page.phtml defines.
+ */
+
+declare(strict_types=1);
+
+use Hyva\Theme\Model\ViewModelRegistry;
+use Hyva\Theme\ViewModel\LucideIcons;
+use Magento\Framework\Escaper;
+use NexorAIQ\Connector\ViewModel\SearchPage;
+
+/** @var Escaper $escaper */
+/** @var ViewModelRegistry $viewModels */
+
+/** @var SearchPage $nxqPage */
+$nxqPage = $viewModels->require(SearchPage::class);
+if (!$nxqPage->isFiltersEnabled()) {
+    return;
+}
+/** @var LucideIcons $lucideIcons */
+$lucideIcons = $viewModels->require(LucideIcons::class);
+$chevron = $lucideIcons->chevronDownHtml('transition-transform group-open:rotate-180', 24, 24, ['aria-hidden' => 'true']);
+?>
+<div
+    role="region"
+    aria-label="<?= $escaper->escapeHtmlAttr(__('Product filters')) ?>"
+    class="block border border-gray-300 bg-gray-100 p-4 md:border-0 md:bg-transparent md:py-0 md:px-0 my-6"
+    x-data="nxqSearchView"
+    x-cloak
+    x-show="s.query && (s.facets.length || s.activeFilters().length)"
+>
+    <div x-data="{blockOpen: false}">
+        <h2 id="filters-heading" class="block-title">
+            <button
+                type="button"
+                @click="blockOpen = !blockOpen"
+                class="group block-title flex items-center justify-between w-full text-start md:cursor-text md:select-text"
+                aria-controls="filters-content"
+                :aria-expanded="blockOpen"
+            >
+                <span class="text-md md:text-3xl font-medium uppercase"><?= $escaper->escapeHtml(__('Shop By')) ?></span>
+                <span class="py-1 px-1 bg-white rounded-lg border border-gray-300 md:hidden">
+                    <?= $lucideIcons->chevronDownHtml('transition-transform group-aria-expanded:rotate-180', 24, 24, ['aria-hidden' => 'true']) ?>
+                </span>
+            </button>
+        </h2>
+        <div id="filters-content" class="block-content filter-content pt-4 hidden md:block data-[open=true]:block" :data-open="blockOpen">
+
+            <!-- Active filtering (Magento_LayeredNavigation::layer/state.phtml) -->
+            <template x-if="s.activeFilters().length">
+                <details class="group filter-current card p-0 my-4" open>
+                    <summary class="filter-options-title list-none flex justify-between items-center cursor-pointer py-4 px-5">
+                        <h3 class="inline-block text-md md:text-lg font-semibold"><?= $escaper->escapeHtml(__('Active filtering')) ?></h3>
+                        <span class="p-1 rounded-lg border border-gray-300"><?= /** @noEscape */ $chevron ?></span>
+                    </summary>
+                    <div class="py-4 px-5 border-t border-gray-300">
+                        <ul role="list" class="items">
+                            <template x-for="filter in s.activeFilters()" :key="filter.id">
+                                <li class="item flex justify-between items-center gap-2 mb-3 pb-3 border-b border-gray-200 last:border-transparent last:mb-0">
+                                    <span>
+                                        <span class="filter-label block" x-text="filter.name"></span>
+                                        <span class="filter-value text-sm block" x-text="filter.label"></span>
+                                    </span>
+                                    <a class="btn p-2" :href="s.removeUrl(filter)" @click.prevent="s.removeFilter(filter)">
+                                        <span class="sr-only" x-text="hyva.str('<?= $escaper->escapeJs(__('Remove active %1 filter: %2')) ?>', filter.name, filter.label)"></span>
+                                        <?= $lucideIcons->trashHtml('', 20, 20, ['aria-hidden' => 'true']) ?>
+                                    </a>
+                                </li>
+                            </template>
+                        </ul>
+                        <div class="block-actions filter-actions">
+                            <a :href="s.clearAllUrl()" @click.prevent="s.clearAll()" class="btn btn-secondary btn-size-sm w-full">
+                                <?= $escaper->escapeHtml(__('Clear All')) ?>
+                            </a>
+                        </div>
+                    </div>
+                </details>
+            </template>
+
+            <a href="#product-list" class="sr-only focus:not-sr-only btn btn-primary flex">
+                <?= $escaper->escapeHtml(__('Skip to product list')) ?>
+            </a>
+
+            <!-- One block per aggregation returned by searchCatalog -->
+            <template x-for="facet in s.facets" :key="facet.key">
+                <details class="group filter-option card p-0 my-4"
+                         x-show="facet.kind === 'price' || s.visibleOptions(facet).length">
+                    <summary class="filter-options-title list-none flex justify-between items-center cursor-pointer py-4 px-5">
+                        <h3 class="inline-block text-md md:text-lg font-semibold">
+                            <span x-text="facet.label"></span>
+                            <span class="sr-only"> <?= $escaper->escapeHtml(__('filter')) ?></span>
+                        </h3>
+                        <span class="p-1 rounded-lg border border-gray-300"><?= /** @noEscape */ $chevron ?></span>
+                    </summary>
+                    <div class="filter-options-content py-4 px-5 border-t border-gray-300">
+
+                        <!-- Swatches: color / size (Magento_Swatches::product/layered/renderer.phtml) -->
+                        <template x-if="s.isSwatchFacet(facet)">
+                            <div class="flex flex-wrap gap-2" role="group" :aria-label="hyva.str('<?= $escaper->escapeJs(__('%1 filter options')) ?>', facet.label)">
+                                <template x-for="option in s.visibleOptions(facet)" :key="option.value">
+                                    <a :href="s.toggleUrl(facet, option)" @click.prevent="s.toggle(facet, option)" rel="nofollow"
+                                       class="swatch-option" role="checkbox" :aria-checked="s.isSelected(facet, option) ? 'true' : 'false'"
+                                       :data-swatch-type="s.swatch(facet, option).type === 'text' ? 'text' : 'visual'"
+                                       :title="option.label + ' (' + option.count + ')'"
+                                       :aria-label="hyva.str('<?= $escaper->escapeJs(__('Filter %1 %2')) ?>', facet.label, option.label)">
+                                        <template x-if="s.swatch(facet, option).type === 'color'">
+                                            <span class="block size-full nxq-sp-swatch-color" :style="{backgroundColor: s.swatch(facet, option).value}"></span>
+                                        </template>
+                                        <template x-if="s.swatch(facet, option).type === 'image'">
+                                            <img :src="s.swatch(facet, option).value" :alt="option.label" width="30" height="30"
+                                                 class="size-full object-cover" loading="lazy">
+                                        </template>
+                                        <span :class="{'sr-only': s.swatch(facet, option).type !== 'text'}"
+                                              x-text="s.swatch(facet, option).type === 'text' ? (s.swatch(facet, option).value || option.label) : option.label"></span>
+                                    </a>
+                                </template>
+                            </div>
+                        </template>
+
+                        <!-- Option list: categories and other attributes (Magento_LayeredNavigation::layer/filter.phtml), multi-select -->
+                        <template x-if="facet.kind !== 'price' && !s.isSwatchFacet(facet)">
+                            <ol role="list" class="items" :aria-label="hyva.str('<?= $escaper->escapeJs(__('%1 filter options')) ?>', facet.label)">
+                                <template x-for="option in s.visibleOptions(facet)" :key="option.value">
+                                    <li>
+                                        <a :href="s.toggleUrl(facet, option)" @click.prevent="s.toggle(facet, option)" rel="nofollow"
+                                           class="flex justify-between py-1 hover:text-black nxq-sp-option"
+                                           role="checkbox" :aria-checked="s.isSelected(facet, option) ? 'true' : 'false'"
+                                           :aria-label="hyva.str('<?= $escaper->escapeJs(__('%1 filter, %2 available products')) ?>', option.label, option.count)">
+                                            <span x-text="option.label"></span>
+                                            <span class="count" x-text="'(' + option.count + ')'"></span>
+                                        </a>
+                                    </li>
+                                </template>
+                            </ol>
+                        </template>
+
+                        <!-- Price range -->
+                        <template x-if="facet.kind === 'price'">
+                            <form class="nxq-sp-price" @submit.prevent="s.applyPrice()">
+                                <label class="sr-only" :for="'nxq-price-from-' + facet.key"><?= $escaper->escapeHtml(__('Minimum price')) ?></label>
+                                <input :id="'nxq-price-from-' + facet.key" class="form-input" type="number" min="0" step="any" inputmode="decimal"
+                                       x-model="s.priceFrom" :placeholder="facet.min">
+                                <span aria-hidden="true">-</span>
+                                <label class="sr-only" :for="'nxq-price-to-' + facet.key"><?= $escaper->escapeHtml(__('Maximum price')) ?></label>
+                                <input :id="'nxq-price-to-' + facet.key" class="form-input" type="number" min="0" step="any" inputmode="decimal"
+                                       x-model="s.priceTo" :placeholder="facet.max">
+                                <button type="submit" class="btn btn-secondary btn-size-sm w-full"><?= $escaper->escapeHtml(__('Apply')) ?></button>
+                            </form>
+                        </template>
+                    </div>
+                </details>
+            </template>
+
+            <!-- Availability -->
+            <details class="group filter-option card p-0 my-4" x-show="s.facets.length">
+                <summary class="filter-options-title list-none flex justify-between items-center cursor-pointer py-4 px-5">
+                    <h3 class="inline-block text-md md:text-lg font-semibold">
+                        <?= $escaper->escapeHtml(__('Availability')) ?>
+                        <span class="sr-only"> <?= $escaper->escapeHtml(__('filter')) ?></span>
+                    </h3>
+                    <span class="p-1 rounded-lg border border-gray-300"><?= /** @noEscape */ $chevron ?></span>
+                </summary>
+                <div class="filter-options-content py-4 px-5 border-t border-gray-300">
+                    <ol role="list" class="items">
+                        <li>
+                            <a :href="s.urlFor({page: 1, inStockOnly: !s.inStockOnly})" @click.prevent="s.update({inStockOnly: !s.inStockOnly})"
+                               rel="nofollow" class="flex justify-between py-1 hover:text-black nxq-sp-option"
+                               role="checkbox" :aria-checked="s.inStockOnly ? 'true' : 'false'">
+                                <span><?= $escaper->escapeHtml(__('In stock only')) ?></span>
+                            </a>
+                        </li>
+                    </ol>
+                </div>
+            </details>
+        </div>
+    </div>
+</div>

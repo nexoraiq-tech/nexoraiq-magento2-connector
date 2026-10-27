@@ -1,0 +1,122 @@
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ *
+ * NexorAIQ search results page. The page reuses the Luma category page markup and theme classes
+ * (toolbar, product grid, price box, layered navigation, swatches); this file only adds what the
+ * search page does differently.
+ */
+
+.nexoraiq-search-page #layered-filter-block[hidden] {
+    display: none !important;
+}
+
+.nxq-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ---------- Filters: multi-select options show a checkbox ---------- */
+.nexoraiq-search-page .filter-options-title {
+    cursor: pointer;
+}
+
+.nxq-sp-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nxq-sp-option > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nxq-sp-option > span:first-child::before {
+    content: "";
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #c2c2c2;
+    border-radius: 2px;
+    background: #fff center / 12px no-repeat;
+}
+
+.nxq-sp-option[aria-checked="true"] {
+    font-weight: 600;
+}
+
+.nxq-sp-option[aria-checked="true"] > span:first-child::before {
+    border-color: #1979c3;
+    background-color: #1979c3;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>');
+}
+
+.nexoraiq-search-page .filter-options-content .nxq-sp-option .count {
+    margin-inline-start: auto;
+}
+
+/* ---------- Price range filter ---------- */
+.nxq-sp-price {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+}
+
+.nxq-sp-price .input-text {
+    width: 100%;
+    min-width: 0;
+}
+
+.nxq-sp-price .action {
+    grid-column: 1 / -1;
+}
+
+/* ---------- Product list ---------- */
+.nxq-sp-busy {
+    opacity: .5;
+    transition: opacity .15s ease;
+}
+
+.nxq-sp-loading {
+    padding: 48px 16px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.nxq-sp-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-inline-end: 8px;
+    vertical-align: -2px;
+    border: 2px solid #e5e7eb;
+    border-top-color: #1979c3;
+    border-radius: 9999px;
+    animation: nxq-sp-spin .7s linear infinite;
+}
+
+@keyframes nxq-sp-spin {
+    to { transform: rotate(360deg); }
+}
+
+.nxq-sp .product-image-wrapper .product-image-photo {
+    object-fit: contain;
+}
+
+.nxq-sp .tocart.nxq-sp-added {
+    background: #15803d;
+    border-color: #15803d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .nxq-sp-spinner { animation-duration: 2s; }
+}

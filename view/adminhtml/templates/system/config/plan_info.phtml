@@ -1,0 +1,333 @@
+<?php
+/** @var \NexorAIQ\Connector\Block\Adminhtml\System\Config\PlanInfo $block */
+/** @var \Magento\Framework\Escaper $escaper */
+$uid = 'nxq-plan-' . uniqid();
+?>
+<div id="<?= $escaper->escapeHtmlAttr($uid) ?>" class="nxq-plan" data-url="<?= $escaper->escapeUrl($block->getPlanInfoUrl()) ?>">
+    <div class="nxq-plan__card" data-role="card">
+        <div class="nxq-plan__loading" data-role="loading">
+            <span class="nxq-plan__spinner"></span>
+            <span><?= $escaper->escapeHtml(__('Loading your plan…')) ?></span>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nxq-plan { max-width: 640px; }
+    .nxq-plan__card {
+        border: 1px solid #e4e1f5; border-radius: 10px; background: #fff; overflow: hidden;
+        box-shadow: 0 1px 3px rgba(40, 20, 120, .07); font-size: 13px;
+    }
+    .nxq-plan__loading { display: flex; align-items: center; gap: 10px; padding: 14px 18px; color: #6b6b7b; }
+    .nxq-plan__spinner {
+        width: 14px; height: 14px; border-radius: 50%; border: 2px solid #e2def5; border-top-color: #6f4cf6;
+        animation: nxq-spin .8s linear infinite; flex: none;
+    }
+    @keyframes nxq-spin { to { transform: rotate(360deg); } }
+
+    .nxq-plan__head {
+        display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap;
+        padding: 14px 18px; color: #fff; background: linear-gradient(120deg, #4b2fd8 0%, #6f4cf6 60%, #8f6bff 100%);
+    }
+    .nxq-plan__eyebrow { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; opacity: .8; margin-bottom: 2px; }
+    .nxq-plan__name { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 20px; font-weight: 700; line-height: 1.2; }
+    .nxq-plan__badge {
+        display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 9px; line-height: 1.4;
+        border-radius: 999px; background: rgba(255, 255, 255, .18); border: 1px solid rgba(255, 255, 255, .35); color: #fff;
+    }
+    .nxq-plan__badge--active { background: #e7f6ec; border-color: #bfe5cb; color: #1d7a3e; }
+    .nxq-plan__badge--warn { background: #fff4e0; border-color: #f6d79b; color: #8a5a00; }
+    .nxq-plan__badge--danger { background: #fdecea; border-color: #f5c2c0; color: #a12b22; }
+    .nxq-plan__price { text-align: right; }
+    .nxq-plan__amount { font-size: 22px; font-weight: 700; line-height: 1.1; }
+    .nxq-plan__amount small { font-size: 12px; font-weight: 400; opacity: .85; }
+    .nxq-plan__yearly { font-size: 11px; opacity: .85; margin-top: 2px; }
+
+    .nxq-plan__trial {
+        display: flex; align-items: center; gap: 12px; padding: 8px 18px; background: #f5f2ff;
+        border-bottom: 1px solid #ebe5ff; font-size: 12px; color: #3a2a8c;
+    }
+    .nxq-plan__trial--urgent { background: #fff6e6; border-color: #f6d79b; color: #7a4f00; }
+    .nxq-plan__trial-bar { flex: 1; height: 5px; background: rgba(111, 76, 246, .15); border-radius: 999px; overflow: hidden; min-width: 80px; }
+    .nxq-plan__trial-bar span { display: block; height: 100%; background: #6f4cf6; border-radius: 999px; }
+    .nxq-plan__trial--urgent .nxq-plan__trial-bar span { background: #e69500; }
+
+    .nxq-plan__body { padding: 12px 18px 4px; }
+    .nxq-plan__section { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #8b89a0; margin: 0 0 6px; }
+    .nxq-plan__limits { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 6px; margin-bottom: 12px; }
+    .nxq-plan__limit { border: 1px solid #ecebf3; border-radius: 6px; padding: 6px 10px; background: #faf9fd; }
+    .nxq-plan__limit-value { font-size: 15px; font-weight: 700; color: #1f1d2e; line-height: 1.3; }
+    .nxq-plan__limit-label { font-size: 11px; color: #77758a; }
+    .nxq-plan__features { list-style: none; margin: 0 0 10px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px 14px; }
+    .nxq-plan__features li { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #33314a; margin: 0; }
+    .nxq-plan__features li::before {
+        content: "\2713"; flex: none; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; line-height: 16px;
+        text-align: center; background: #e7f6ec; color: #1d7a3e; font-weight: 700;
+    }
+    .nxq-plan__features li.is-off { color: #a5a3b5; }
+    .nxq-plan__features li.is-off::before { content: "\2013"; background: #f0f0f4; color: #a5a3b5; }
+
+    .nxq-plan__foot {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+        padding: 8px 18px; border-top: 1px solid #ecebf3; background: #faf9fd;
+    }
+    .nxq-plan__hint { font-size: 11px; color: #8b89a0; }
+    .nxq-plan__actions { display: flex; gap: 6px; margin-left: auto; }
+    .nxq-plan .nxq-plan__btn {
+        display: inline-flex; align-items: center; gap: 5px; border-radius: 5px; padding: 5px 12px; line-height: 1.4;
+        font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid #dcd8ec; background: #fff; color: #44425a;
+    }
+    .nxq-plan .nxq-plan__btn:hover { background: #f6f5fa; }
+    .nxq-plan .nxq-plan__upgrade { border-color: #6f4cf6; background: #6f4cf6; color: #fff; box-shadow: 0 1px 4px rgba(111, 76, 246, .35); }
+    .nxq-plan .nxq-plan__upgrade:hover { background: #5b39e6; }
+    .nxq-plan .nxq-plan__btn:disabled { opacity: .65; cursor: wait; }
+    .nxq-plan__msg { padding: 0 18px 8px; font-size: 12px; color: #a12b22; background: #faf9fd; }
+    .nxq-plan__msg:empty { display: none; }
+
+    .nxq-plan__error { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-left: 3px solid #e69500; }
+    .nxq-plan__error-icon {
+        flex: none; width: 22px; height: 22px; border-radius: 50%; background: #fff4e0; color: #b07000;
+        font-weight: 700; font-size: 13px; line-height: 22px; text-align: center;
+    }
+    .nxq-plan__error-text { flex: 1; min-width: 0; font-size: 12px; color: #5d5b6e; }
+    .nxq-plan__error-text strong { display: block; font-size: 13px; color: #1f1d2e; }
+</style>
+
+<script>
+require(['jquery'], function ($) {
+    var root = $('#<?= $escaper->escapeJs($uid) ?>');
+    var card = root.find('[data-role="card"]');
+    var url = root.data('url');
+    var t = {
+        currentPlan: <?= json_encode(__('Current plan')->render()) ?>,
+        perMonth: <?= json_encode(__('/month')->render()) ?>,
+        perYear: <?= json_encode(__('/year')->render()) ?>,
+        or: <?= json_encode(__('or')->render()) ?>,
+        free: <?= json_encode(__('Free')->render()) ?>,
+        limits: <?= json_encode(__('Plan limits')->render()) ?>,
+        features: <?= json_encode(__('Included features')->render()) ?>,
+        upgrade: <?= json_encode(__('Upgrade Plan')->render()) ?>,
+        opening: <?= json_encode(__('Opening…')->render()) ?>,
+        refresh: <?= json_encode(__('Refresh')->render()) ?>,
+        hint: <?= json_encode(__('Opens Plan & Subscription in a new tab, already signed in.')->render()) ?>,
+        trialEnds: <?= json_encode(__('Free trial ends')->render()) ?>,
+        trialEnded: <?= json_encode(__('Your free trial has ended')->render()) ?>,
+        daysLeft: <?= json_encode(__('days left')->render()) ?>,
+        dayLeft: <?= json_encode(__('day left')->render()) ?>,
+        errTitle: <?= json_encode(__('Could not load your plan')->render()) ?>,
+        retry: <?= json_encode(__('Try again')->render()) ?>,
+        noLink: <?= json_encode(__('NexorAIQ did not return a login link. Please try again.')->render()) ?>,
+        popup: <?= json_encode(__('Your browser blocked the new tab. Allow pop-ups for this page and try again.')->render()) ?>,
+        failed: <?= json_encode(__('Request failed. Please try again.')->render()) ?>
+    };
+    var statusLabels = {
+        trialing: 'Free Trial', active: 'Active', past_due: 'Payment Due', unpaid: 'Unpaid',
+        canceled: 'Canceled', cancelled: 'Canceled', expired: 'Expired', incomplete: 'Incomplete', paused: 'Paused'
+    };
+    var limitLabels = { searches: 'Searches', products: 'Products', storeViews: 'Store Views', synonyms: 'Synonyms', rules: 'Rules' };
+    var TRIAL_DAYS = 14;
+
+    function el(tag, cls, text) {
+        var node = $('<' + tag + '>');
+        if (cls) { node.addClass(cls); }
+        if (text !== undefined && text !== null) { node.text(String(text)); }
+        return node;
+    }
+
+    function humanize(key) {
+        return String(key).replace(/[_-]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2')
+            .replace(/^./, function (c) { return c.toUpperCase(); })
+            .replace(/\b(Ai|Api|Seo|Sku|Url|Ui|Ux)\b/g, function (w) { return w.toUpperCase(); });
+    }
+
+    function money(amount, currency) {
+        var n = Number(amount);
+        if (!isFinite(n)) { return ''; }
+        try {
+            return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency || 'USD', maximumFractionDigits: n % 1 ? 2 : 0 }).format(n);
+        } catch (e) {
+            return (currency ? currency + ' ' : '') + n.toLocaleString();
+        }
+    }
+
+    function badgeClass(status) {
+        if (status === 'active') { return 'nxq-plan__badge--active'; }
+        if (['past_due', 'unpaid', 'incomplete', 'paused'].indexOf(status) !== -1) { return 'nxq-plan__badge--warn'; }
+        if (['canceled', 'cancelled', 'expired'].indexOf(status) !== -1) { return 'nxq-plan__badge--danger'; }
+        return '';
+    }
+
+    function renderTrial(plan) {
+        if (!plan.isTrial || !plan.trialEnd) { return null; }
+        var end = new Date(plan.trialEnd);
+        if (isNaN(end.getTime())) { return null; }
+        var days = Math.ceil((end.getTime() - Date.now()) / 86400000);
+        var bar = el('div', 'nxq-plan__trial');
+        if (days <= 3) { bar.addClass('nxq-plan__trial--urgent'); }
+        if (days <= 0) {
+            bar.append(el('span', '', t.trialEnded));
+            return bar;
+        }
+        var dateText = end.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+        bar.append(el('span', '', t.trialEnds + ' ' + dateText + ' · ').append(el('strong', '', days + ' ' + (days === 1 ? t.dayLeft : t.daysLeft))));
+        var pct = Math.max(4, Math.min(100, 100 - (days / TRIAL_DAYS) * 100));
+        bar.append(el('div', 'nxq-plan__trial-bar').append($('<span>').css('width', pct + '%')));
+        return bar;
+    }
+
+    function renderFeatures(features) {
+        var list = el('ul', 'nxq-plan__features');
+        var count = 0;
+        var add = function (label, on) {
+            var li = el('li', on ? '' : 'is-off', label);
+            list.append(li);
+            count++;
+        };
+        if (Array.isArray(features)) {
+            features.forEach(function (f) {
+                if (typeof f === 'string') { add(f, true); }
+                else if (f && f.name) { add(f.name, f.enabled !== false); }
+            });
+        } else if (features && typeof features === 'object') {
+            Object.keys(features).forEach(function (key) {
+                var v = features[key];
+                if (typeof v === 'boolean') { add(humanize(key), v); }
+                else if (v !== null && v !== undefined && typeof v !== 'object' && v !== '') { add(humanize(key) + ': ' + v, true); }
+            });
+        }
+        return count ? list : null;
+    }
+
+    function renderPlan(data) {
+        var plan = data.plan || {};
+        var status = String(plan.status || '').toLowerCase();
+        card.empty();
+
+        // Header: plan name, status, price
+        var head = el('div', 'nxq-plan__head');
+        var left = el('div');
+        left.append(el('div', 'nxq-plan__eyebrow', t.currentPlan));
+        var name = el('div', 'nxq-plan__name', plan.name || '—');
+        if (status) {
+            name.append(el('span', 'nxq-plan__badge ' + badgeClass(status), statusLabels[status] || humanize(status)));
+        }
+        left.append(name);
+        head.append(left);
+
+        if (plan.price !== undefined && plan.price !== null) {
+            var price = el('div', 'nxq-plan__price');
+            if (Number(plan.price) === 0) {
+                price.append(el('div', 'nxq-plan__amount', t.free));
+            } else {
+                price.append(el('div', 'nxq-plan__amount', money(plan.price, plan.currency)).append(el('small', '', t.perMonth)));
+                if (plan.priceYearly) {
+                    price.append(el('div', 'nxq-plan__yearly', t.or + ' ' + money(plan.priceYearly, plan.currency) + t.perYear));
+                }
+            }
+            head.append(price);
+        }
+        card.append(head);
+
+        var trial = renderTrial(plan);
+        if (trial) { card.append(trial); }
+
+        // Body: limits + features
+        var body = el('div', 'nxq-plan__body');
+        var limits = plan.limits && typeof plan.limits === 'object' ? plan.limits : {};
+        var limitKeys = Object.keys(limits).filter(function (k) { return limits[k] !== null && typeof limits[k] !== 'object'; });
+        if (limitKeys.length) {
+            body.append(el('div', 'nxq-plan__section', t.limits));
+            var grid = el('div', 'nxq-plan__limits');
+            limitKeys.forEach(function (k) {
+                var v = limits[k];
+                var tile = el('div', 'nxq-plan__limit');
+                tile.append(el('div', 'nxq-plan__limit-value', typeof v === 'number' ? v.toLocaleString() : v));
+                tile.append(el('div', 'nxq-plan__limit-label', limitLabels[k] || humanize(k)));
+                grid.append(tile);
+            });
+            body.append(grid);
+        }
+        var features = renderFeatures(plan.features);
+        if (features) {
+            body.append(el('div', 'nxq-plan__section', t.features));
+            body.append(features);
+        }
+        if (body.children().length) { card.append(body); }
+
+        // Footer: upgrade button
+        var foot = el('div', 'nxq-plan__foot');
+        foot.append(el('div', 'nxq-plan__hint', t.hint));
+        var actions = el('div', 'nxq-plan__actions');
+        var refresh = el('button', 'nxq-plan__btn', t.refresh).attr('type', 'button');
+        var upgrade = el('button', 'nxq-plan__btn nxq-plan__upgrade', t.upgrade).attr('type', 'button');
+        upgrade.prepend($('<span aria-hidden="true">').text('↑'));
+        actions.append(refresh, upgrade);
+        foot.append(actions);
+        card.append(foot);
+        var msg = el('div', 'nxq-plan__msg');
+        card.append(msg);
+
+        refresh.on('click', load);
+        upgrade.on('click', function () { openUpgrade(upgrade, msg); });
+    }
+
+    function renderError(message) {
+        card.empty();
+        var box = el('div', 'nxq-plan__error');
+        box.append(el('span', 'nxq-plan__error-icon', '!'));
+        box.append(el('div', 'nxq-plan__error-text').append(el('strong', '', t.errTitle)).append(el('span', '', message || t.failed)));
+        box.append(el('button', 'nxq-plan__btn', t.retry).attr('type', 'button').on('click', load));
+        card.append(box);
+    }
+
+    function request() {
+        return $.ajax({ url: url, type: 'POST', dataType: 'json', data: { form_key: window.FORM_KEY } });
+    }
+
+    function load() {
+        card.html('<div class="nxq-plan__loading"><span class="nxq-plan__spinner"></span><span></span></div>')
+            .find('span:last').text(<?= json_encode(__('Loading your plan…')->render()) ?>);
+        request().done(function (res) {
+            if (res && res.success) { renderPlan(res); } else { renderError(res && res.message); }
+        }).fail(function () { renderError(t.failed); });
+    }
+
+    // The login token is short-lived, so fetch a fresh link on every click. The tab is opened
+    // synchronously inside the click so pop-up blockers allow it, then pointed at the link.
+    function openUpgrade(btn, msg) {
+        msg.text('');
+        var win = window.open('', '_blank');
+        if (!win) { msg.text(t.popup); return; }
+        try {
+            win.opener = null;
+            win.document.title = 'NexorAIQ';
+            win.document.body.style.cssText = 'font-family:sans-serif;color:#555;display:flex;align-items:center;justify-content:center;height:100vh;margin:0';
+            win.document.body.textContent = t.opening;
+        } catch (e) {}
+
+        var label = btn.contents().last();
+        btn.prop('disabled', true);
+        label.replaceWith(document.createTextNode(t.opening));
+        var reset = function () {
+            btn.prop('disabled', false);
+            btn.contents().last().replaceWith(document.createTextNode(t.upgrade));
+        };
+
+        request().done(function (res) {
+            reset();
+            if (res && res.success && res.autoLoginUrl) {
+                win.location.href = res.autoLoginUrl;
+            } else {
+                win.close();
+                msg.text((res && res.message) || t.noLink);
+            }
+        }).fail(function () {
+            reset();
+            win.close();
+            msg.text(t.failed);
+        });
+    }
+
+    load();
+});
+</script>

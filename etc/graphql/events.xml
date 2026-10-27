@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <!-- NexorAIQ analytics: ADD_TO_CART for products found through NexorAIQ search -->
+    <event name="sales_quote_product_add_after">
+        <observer name="nexoraiq_analytics_add_to_cart" instance="NexorAIQ\Connector\Observer\Analytics\AddToCart"/>
+    </event>
+    <!-- NexorAIQ analytics: CONVERSION for every ordered product -->
+    <event name="sales_model_service_quote_submit_success">
+        <observer name="nexoraiq_analytics_conversion" instance="NexorAIQ\Connector\Observer\Analytics\Conversion"/>
+    </event>
+</config>

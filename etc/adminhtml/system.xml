@@ -1,0 +1,395 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="nexoraiq" translate="label" sortOrder="500" class="nexoraiq-config-tab">
+            <label>NexorAIQ</label>
+        </tab>
+        <section id="nexoraiq" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="0" showInStore="0">
+            <label>General</label>
+            <tab>nexoraiq</tab>
+            <resource>NexorAIQ_Connector::config</resource>
+            <group id="branding" translate="label" sortOrder="1" showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>NexorAIQ</label>
+                <frontend_model>NexorAIQ\Connector\Block\Adminhtml\System\Config\Branding</frontend_model>
+            </group>
+            <group id="general" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>General Settings</label>
+                <field id="enabled" translate="label" type="select" sortOrder="10" showInDefault="1">
+                    <label>Enable Extension</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <backend_model>NexorAIQ\Connector\Model\Config\Backend\Enabled</backend_model>
+                </field>
+                <field id="current_plan" translate="label" type="label" sortOrder="11" showInDefault="1">
+                    <label>Current Plan</label>
+                    <frontend_model>NexorAIQ\Connector\Block\Adminhtml\System\Config\PlanInfo</frontend_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="subscription_status" translate="label" type="label" sortOrder="12" showInDefault="1">
+                    <label>Subscription Status</label>
+                    <frontend_model>NexorAIQ\Connector\Block\Adminhtml\System\Config\SubscriptionStatus</frontend_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="check_subscription" translate="label" type="label" sortOrder="13" showInDefault="1">
+                    <label>Check Subscription</label>
+                    <comment>After renewing/upgrading your plan on the NexorAIQ portal, click this to verify and resume sync.</comment>
+                    <frontend_model>NexorAIQ\Connector\Block\Adminhtml\System\Config\CheckSubscriptionButton</frontend_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="connection_key" translate="label" type="obscure" sortOrder="20" showInDefault="1">
+                    <label>Connection Key</label>
+                    <comment>Paste your nxk_live_... key from the NexorAIQ dashboard.</comment>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="api_url" translate="label" type="text" sortOrder="30" showInDefault="1">
+                    <label>NexorAIQ API URL</label>
+                    <comment>NexorAIQ API endpoint (read-only).</comment>
+                    <frontend_model>NexorAIQ\Connector\Block\Adminhtml\System\Config\ReadonlyField</frontend_model>
+                    <backend_model>NexorAIQ\Connector\Model\Config\Backend\ReadonlyValue</backend_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="search_key" translate="label" type="obscure" sortOrder="35" showInDefault="1">
+                    <label>Public Search API Key</label>
+                    <config_path>nexoraiq/storefront_ui/search_key</config_path>
+                    <comment>Your read-only public search key (key_search_...) from the NexorAIQ dashboard.</comment>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="realtime_sync" translate="label" type="select" sortOrder="40" showInDefault="1">
+                    <label>Real-time Product Sync</label>
+                    <comment>Push product changes to NexorAIQ immediately on save/delete/stock update.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="batch_size" translate="label" type="select" sortOrder="50" showInDefault="1">
+                    <label>Bulk Sync Batch Size</label>
+                    <comment><![CDATA[Select how many products to process and send per batch during reindex.
+                    <br/><b>100:</b> Low load (Default, recommended for shared hosting or low RAM).
+                    <br/><b>150:</b> Balanced load.
+                    <br/><b>200:</b> High load.
+                    <br/><b>300:</b> Maximum load (fastest sync, needs a higher PHP memory_limit).]]></comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\BatchSize</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="full_reindex_skip_window" translate="label" type="text" sortOrder="55" showInDefault="1">
+                    <label>Full Reindex Skip Window (minutes)</label>
+                    <comment>During a full reindex, skip products already synced successfully within this many minutes. Set to 0 to always resync everything.</comment>
+                    <validate>validate-zero-or-greater validate-digits</validate>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="active_store_views" translate="label" type="label" sortOrder="60" showInDefault="1">
+                    <label>Active Store Views</label>
+                    <frontend_model>NexorAIQ\Connector\Block\Adminhtml\System\Config\ActiveStoreViews</frontend_model>
+                    <comment>Active store views synced with NexorAIQ (configured from the NexorAIQ dashboard).</comment>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+
+            <group id="attributes_config" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Attributes Configuration</label>
+                <field id="extra_attributes" translate="label" type="multiselect" sortOrder="10" showInDefault="1">
+                    <label>Extra Attributes to be Synced</label>
+                    <comment>By default, NexorAIQ syncs all attributes which are set as true for filterable / searchable. Select extra attributes you want in NexorAIQ product's object except these.</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\ProductAttributes</source_model>
+                </field>
+            </group>
+
+            <group id="description_config" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Description Configuration</label>
+                <field id="ignore_description" translate="label" type="select" sortOrder="10" showInDefault="1">
+                    <label>Ignore Description ?</label>
+                    <comment>Select Yes if you want to ignore product description in search.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="common_words" translate="label" type="textarea" sortOrder="20" showInDefault="1">
+                    <label>Common Words to Remove</label>
+                    <comment>Mention all words line by line in textarea which needs to be removed from description during sync. Each word MUST be in different line.</comment>
+                    <depends>
+                        <field id="ignore_description">0</field>
+                    </depends>
+                </field>
+            </group>
+
+            <group id="brands_config" translate="label" type="text" sortOrder="40" showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Brands Configuration</label>
+                <field id="is_multi_brand" translate="label" type="select" sortOrder="10" showInDefault="1">
+                    <label>Is it multi brand store?</label>
+                    <comment>Do you sell multiple brand/manufacturer products?</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="identified_using" translate="label" type="select" sortOrder="20" showInDefault="1">
+                    <label>Identified Using?</label>
+                    <comment>Select how brands can be identified using your catalogue's data.</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\BrandIdentifiedUsing</source_model>
+                    <depends>
+                        <field id="is_multi_brand">1</field>
+                    </depends>
+                </field>
+                <field id="attribute" translate="label" type="select" sortOrder="30" showInDefault="1">
+                    <label>Attribute</label>
+                    <comment>Select an attribute which NexorAIQ should use as a Brand.</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\ProductAttributes</source_model>
+                    <depends>
+                        <field id="is_multi_brand">1</field>
+                    </depends>
+                </field>
+                <field id="is_brand_mandatory" translate="label" type="select" sortOrder="40" showInDefault="1">
+                    <label>Is brand mandatory for sync?</label>
+                    <comment>Set it as yes if brand is mandatory data for products to sync. If brand is not preset for any product, it will be added under Skipped Entities.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <depends>
+                        <field id="is_multi_brand">1</field>
+                    </depends>
+                </field>
+            </group>
+        </section>
+        <section id="nexoraiq_storefront" translate="label" type="text" sortOrder="200" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>Storefront</label>
+            <tab>nexoraiq</tab>
+            <resource>NexorAIQ_Connector::config</resource>
+            <group id="storefront_ui" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Storefront UI Configuration</label>
+                <field id="takeover_enabled" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Enable Storefront UI Takeover</label>
+                    <config_path>nexoraiq/storefront_ui/takeover_enabled</config_path>
+                    <comment>Enable the autocomplete and search results takeover using NexorAIQ Storefront SDK.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="search_type" translate="label" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Search Type</label>
+                    <config_path>nexoraiq/storefront_ui/search_type</config_path>
+                    <comment>Choose search retrieval strategy for this store view: Keyword, Vector, or Hybrid.</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\SearchType</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="search_layout" translate="label" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Desktop Search Layout</label>
+                    <config_path>nexoraiq/storefront_ui/search_layout</config_path>
+                    <comment>Layout used on desktop and tablet screens (768px wide or more). Autocomplete shows a dropdown under the search box; Overlay Layout opens a full search overlay.</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\SearchLayout</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="mobile_search_layout" translate="label" type="select" sortOrder="45" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Mobile Search Layout</label>
+                    <config_path>nexoraiq/storefront_ui/mobile_search_layout</config_path>
+                    <comment>Layout used on mobile screens (767px wide or less), on Hyvä and Luma. Autocomplete shows a dropdown under the search box; Overlay Layout opens a full search overlay.</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\SearchLayout</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="autocomplete_limit" translate="label" type="select" sortOrder="50" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Limit</label>
+                    <config_path>nexoraiq/storefront_ui/autocomplete_limit</config_path>
+                    <comment>Maximum number of suggestions shown in the autocomplete dropdown (desktop or mobile).</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\AutocompleteLimit</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="overlay_products_limit" translate="label" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Products Limit</label>
+                    <config_path>nexoraiq/storefront_ui/overlay_products_limit</config_path>
+                    <comment>Maximum number of products shown in the search overlay (desktop or mobile).</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\OverlayProductsLimit</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="overlay_layout_type" translate="label" type="select" sortOrder="70" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Layout Type</label>
+                    <config_path>nexoraiq/storefront_ui/overlay_layout_type</config_path>
+                    <comment>Overlay only. 2 Columns shows Suggestions, Categories and Brands next to the products.</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\OverlayLayoutType</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="suggestions_enabled" translate="label" type="select" sortOrder="80" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Suggestions</label>
+                    <config_path>nexoraiq/storefront_ui/suggestions_enabled</config_path>
+                    <comment>Show the Suggestions block in the 2 column overlay.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Enabledisable</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                        <field id="overlay_layout_type">2columns</field>
+                    </depends>
+                </field>
+                <field id="suggestions_label" translate="label" type="text" sortOrder="81" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Suggestions Label</label>
+                    <config_path>nexoraiq/storefront_ui/suggestions_label</config_path>
+                    <comment>Heading displayed above the Suggestions block.</comment>
+                    <validate>required-entry</validate>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                        <field id="overlay_layout_type">2columns</field>
+                        <field id="suggestions_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="suggestions_limit" translate="label" type="select" sortOrder="82" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Suggestions Limit</label>
+                    <config_path>nexoraiq/storefront_ui/suggestions_limit</config_path>
+                    <comment>Maximum number of suggestions shown.</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\SectionLimit</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                        <field id="overlay_layout_type">2columns</field>
+                        <field id="suggestions_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="categories_enabled" translate="label" type="select" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Categories</label>
+                    <config_path>nexoraiq/storefront_ui/categories_enabled</config_path>
+                    <comment>Show the Categories block in the 2 column overlay.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Enabledisable</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                        <field id="overlay_layout_type">2columns</field>
+                    </depends>
+                </field>
+                <field id="categories_label" translate="label" type="text" sortOrder="91" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Categories Label</label>
+                    <config_path>nexoraiq/storefront_ui/categories_label</config_path>
+                    <comment>Heading displayed above the Categories block.</comment>
+                    <validate>required-entry</validate>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                        <field id="overlay_layout_type">2columns</field>
+                        <field id="categories_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="categories_limit" translate="label" type="select" sortOrder="92" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Categories Limit</label>
+                    <config_path>nexoraiq/storefront_ui/categories_limit</config_path>
+                    <comment>Maximum number of categories shown.</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\SectionLimit</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                        <field id="overlay_layout_type">2columns</field>
+                        <field id="categories_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="brands_enabled" translate="label" type="select" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Brands</label>
+                    <config_path>nexoraiq/storefront_ui/brands_enabled</config_path>
+                    <comment>Show the Brands block in the 2 column overlay.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Enabledisable</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                        <field id="overlay_layout_type">2columns</field>
+                    </depends>
+                </field>
+                <field id="brands_label" translate="label" type="text" sortOrder="101" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Brands Label</label>
+                    <config_path>nexoraiq/storefront_ui/brands_label</config_path>
+                    <comment>Heading displayed above the Brands block.</comment>
+                    <validate>required-entry</validate>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                        <field id="overlay_layout_type">2columns</field>
+                        <field id="brands_enabled">1</field>
+                    </depends>
+                </field>
+                <field id="brands_limit" translate="label" type="select" sortOrder="102" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Brands Limit</label>
+                    <config_path>nexoraiq/storefront_ui/brands_limit</config_path>
+                    <comment>Maximum number of brands shown.</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\SectionLimit</source_model>
+                    <depends>
+                        <field id="takeover_enabled">1</field>
+                        <field id="overlay_layout_type">2columns</field>
+                        <field id="brands_enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+            <group id="search_page" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Search Results Page</label>
+                <comment>Full search results page powered by the NexorAIQ searchCatalog API. Requires "Enable Storefront UI Takeover". catalogsearch/result/?q=... redirects to this page while it is enabled.</comment>
+                <field id="enabled" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Enable Search Results Page</label>
+                    <config_path>nexoraiq/search_page/enabled</config_path>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="route" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Search Page URL</label>
+                    <config_path>nexoraiq/search_page/route</config_path>
+                    <comment><![CDATA[URL path of the results page, e.g. <b>search</b> gives <i>/search?q=bag</i>, <b>shop/search</b> gives <i>/shop/search?q=bag</i>. Letters, numbers, "-", "_" and "/".]]></comment>
+                    <backend_model>NexorAIQ\Connector\Model\Config\Backend\SearchRoute</backend_model>
+                    <validate>required-entry</validate>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="per_page" translate="label" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Products Per Page</label>
+                    <config_path>nexoraiq/search_page/per_page</config_path>
+                    <comment>Number of products loaded per page (perPage of the searchCatalog query).</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\SearchPagePerPage</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+                <field id="show_filters" translate="label" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Show Filters</label>
+                    <config_path>nexoraiq/search_page/show_filters</config_path>
+                    <comment>Show the Categories and Price filters (hasFilter of the searchCatalog query).</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <depends>
+                        <field id="enabled">1</field>
+                    </depends>
+                </field>
+            </group>
+            <group id="add_to_cart" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Add to Cart Button</label>
+                <comment>Add to Cart on the products of the search overlay and the search results page. Simple and virtual products are added directly; products with options (configurable, bundle, grouped, ...) show a "Choose Options" link to the product page.</comment>
+                <field id="show_on_overlay" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Show on Search Overlay</label>
+                    <config_path>nexoraiq/add_to_cart/show_on_overlay</config_path>
+                    <comment>Applies when the Desktop or Mobile Search Layout is "Overlay Layout".</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="show_on_search_page" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Show on Search Results Page</label>
+                    <config_path>nexoraiq/add_to_cart/show_on_search_page</config_path>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="button_label" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>Button Label</label>
+                    <config_path>nexoraiq/add_to_cart/button_label</config_path>
+                    <validate>required-entry</validate>
+                </field>
+                <field id="after_add" translate="label" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <label>After Adding to Cart</label>
+                    <config_path>nexoraiq/add_to_cart/after_add</config_path>
+                    <comment>Open Mini Cart closes the search overlay and opens the cart drawer. Magento's "After Adding a Product Redirect to Shopping Cart" setting still takes priority.</comment>
+                    <source_model>NexorAIQ\Connector\Model\Config\Source\AfterAddToCart</source_model>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

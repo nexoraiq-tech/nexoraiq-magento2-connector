@@ -1,0 +1,939 @@
+<?php
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ *
+ * NexorAIQ search results page: product list column. Markup and theme classes follow the Hyvä category
+ * page (Magento_Catalog::product/list.phtml, list/item.phtml, list/toolbar.phtml) so it looks the same.
+ *
+ * Data comes from the NexorAIQ GraphQL searchCatalog query. State lives in the "nxqSearch" Alpine store,
+ * shared with the filters in the left column (search/page/filters.phtml), and in the URL.
+ *
+ * Filters: categories (multi-select), price and stock are applied by the API. Attribute facets the API
+ * cannot filter on (color, size, ...) are applied in the browser over the full result set, using the
+ * attribute values of each hit; paging and counts are then computed here as well.
+ */
+
+declare(strict_types=1);
+
+use Hyva\Theme\Model\ViewModelRegistry;
+use Hyva\Theme\ViewModel\HeroiconsOutline;
+use Hyva\Theme\ViewModel\HyvaCsp;
+use Hyva\Theme\ViewModel\LucideIcons;
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Element\Template;
+use NexorAIQ\Connector\ViewModel\SearchPage;
+
+/** @var Escaper $escaper */
+/** @var Template $block */
+/** @var HyvaCsp $hyvaCsp */
+/** @var ViewModelRegistry $viewModels */
+
+/** @var SearchPage $nxqPage */
+$nxqPage = $viewModels->require(SearchPage::class);
+/** @var LucideIcons $lucideIcons */
+$lucideIcons = $viewModels->require(LucideIcons::class);
+/** @var HeroiconsOutline $heroicons */
+$heroicons = $viewModels->require(HeroiconsOutline::class);
+$showAddToCart = $nxqPage->isAddToCartEnabled();
+$pagerButtonClass = 'btn btn-secondary border-1 border-gray-300 rounded-3xl p-2 text-sm min-w-9.5 aria-disabled:pointer-events-none';
+?>
+<link rel="stylesheet" href="<?= $escaper->escapeUrl($block->getViewFileUrl('NexorAIQ_Connector::css/hyva/search-page.css')) ?>">
+<?php if ($apiOrigin = $nxqPage->getApiOrigin()): ?>
+<link rel="preconnect" href="<?= $escaper->escapeUrl($apiOrigin) ?>" crossorigin>
+<?php endif; ?>
+<script>
+    (() => {
+        const config = <?= /** @noEscape */ $nxqPage->getJsConfig() ?>;
+        // window.nexoraiqProduct (search/shared.phtml) renders at the end of the body: resolved on alpine:init.
+        let product = null;
+        // URL parameters with a fixed meaning; attribute facets use their code as parameter.
+        const RESERVED_PARAMS = [config.queryParam, 'p', 'cat', 'price', 'stock', 'product_list_order',
+            'product_list_dir', 'product_list_mode', 'product_list_limit'];
+        // Attribute filters are applied in the browser over at most this many results.
+        const CLIENT_FILTER_LIMIT = 1000;
+        const SORTS = ['relevance', 'newest', 'price'];
+
+        function searchQuery(params, fields) {
+            const args = [];
+
+            args.push('query: ' + JSON.stringify(params.query || ''));
+            if (params.storeView) {
+                args.push('storeView: ' + JSON.stringify(params.storeView));
+            }
+            if (params.storeCode) {
+                args.push('storeCode: ' + JSON.stringify(params.storeCode));
+            }
+            if (params.page !== undefined && params.page !== null) {
+                args.push('page: ' + parseInt(params.page, 10));
+            }
+            if (params.perPage !== undefined && params.perPage !== null) {
+                args.push('perPage: ' + parseInt(params.perPage, 10));
+            }
+            if (params.searchType) {
+                args.push('searchType: ' + params.searchType);
+            }
+            if (params.hasFilter !== undefined && params.hasFilter !== null) {
+                args.push('hasFilter: ' + (params.hasFilter ? 'true' : 'false'));
+            }
+            if (params.category) {
+                args.push('category: ' + JSON.stringify(params.category));
+            }
+            if (params.minPrice !== undefined && params.minPrice !== null) {
+                args.push('minPrice: ' + Number(params.minPrice));
+            }
+            if (params.maxPrice !== undefined && params.maxPrice !== null) {
+                args.push('maxPrice: ' + Number(params.maxPrice));
+            }
+            if (params.inStockOnly) {
+                args.push('inStockOnly: true');
+            }
+            if (params.sortBy) {
+                args.push('sortBy: ' + JSON.stringify(params.sortBy));
+            }
+            if (Array.isArray(params.attributes) && params.attributes.length > 0) {
+                args.push('attributes: ' + JSON.stringify(params.attributes));
+            }
+
+            const hitFieldsStr = fields || ('id sku url name title price regularPrice specialPrice compareAtPrice discountPercent ' +
+                'currencyCode imageUrl image images category tags description externalId inventory storeViewCode inStock stock_status productType attributes');
+
+            return 'query SearchCatalog {\n' +
+                '  searchCatalog(\n' +
+                '    ' + args.join('\n    ') + '\n' +
+                '  ) {\n' +
+                '    total_found\n' +
+                '    search_time_ms\n' +
+                '    responseId\n' +
+                '    redirected\n' +
+                '    destinationUrl\n' +
+                '    hits {\n' +
+                '      ' + hitFieldsStr + '\n' +
+                '    }\n' +
+                '    aggregations {\n' +
+                '      key\n' +
+                '      label\n' +
+                '      type\n' +
+                '      order\n' +
+                '      data\n' +
+                '    }\n' +
+                '  }\n' +
+                '}';
+        }
+
+        const toNumber = (value) => {
+            if (value === null || value === undefined || String(value).trim() === '') {
+                return null;
+            }
+            const n = Number(value);
+            return Number.isFinite(n) && n >= 0 ? n : null;
+        };
+        const splitList = (value) => String(value || '').split(',').map(item => item.trim()).filter(Boolean);
+        const same = (a, b) => String(a).toLowerCase() === String(b).toLowerCase();
+
+        // Values ({key: lower-cased, label}) of attribute `code` on a hit; for a configurable product, those of
+        // its variations.
+        // Two shapes exist: the platform import's [{id, values: [{value: [...]}]}] and the connector sync's
+        // {custom: {code: "A, B"}} (Helper\Data::buildProductPayload).
+        const hitValues = (hit, code) => {
+            const attributes = hit.attributes;
+            const meta = config.filterable[code] || {options: [], ids: {}};
+            const values = [];
+            // Multi-select values arrive as "A, B" or as option IDs ("37,38"): split, and map an ID to its
+            // label unless it is a label itself (sizes "28", "29", ...).
+            const add = (raw) => {
+                for (const part of (raw === null || raw === undefined ? '' : String(raw)).split(',')) {
+                    let label = product.decode(part).trim();
+                    if (/^\d+$/.test(label) && !meta.options.includes(label) && meta.ids[label]) {
+                        label = meta.ids[label];
+                    }
+                    if (label !== '' && !values.some(item => item.key === label.toLowerCase())) {
+                        values.push({key: label.toLowerCase(), label});
+                    }
+                }
+            };
+            if (Array.isArray(attributes)) {
+                const attribute = attributes.find(item => item && item.id === code);
+                for (const entry of (attribute && Array.isArray(attribute.values) ? attribute.values : [])) {
+                    (Array.isArray(entry.value) ? entry.value : [entry.value]).forEach(add);
+                }
+            } else if (attributes && attributes.custom && attributes.custom[code] !== undefined) {
+                const value = attributes.custom[code];
+                (Array.isArray(value) ? value : [value]).forEach(add);
+            }
+            return values;
+        };
+
+        let controller = null;
+        let requestId = 0;
+        // All results of the current search (filters except attributes): their attribute values build the
+        // attribute filters; with attribute filters active they hold full details and are paged here.
+        let poolKey = '';
+        let poolHits = [];
+        let poolHasDetails = false;
+
+        // x-session-id / x-user-id / x-device headers: window.nexoraiqContext (search/shared.phtml),
+        // resolved on alpine:init like window.nexoraiqProduct.
+        let context = null;
+
+        const store = {
+            config,
+            query: '',
+            page: 1,
+            limit: config.perPage,
+            mode: 'grid',
+            sort: 'relevance',
+            dir: 'asc',
+            categories: [],
+            attributes: {},
+            otherParams: [],
+            minPrice: null,
+            maxPrice: null,
+            inStockOnly: false,
+            priceFrom: '',
+            priceTo: '',
+            hits: [],
+            total: 0,
+            facets: [],
+            baseFacets: [],
+            loading: false,
+            searched: false,
+            failed: false,
+            cartState: {},
+            initialised: false,
+
+            init() {
+                if (this.initialised) {
+                    return;
+                }
+                this.initialised = true;
+                this.readUrl();
+                this.search();
+                window.addEventListener('popstate', () => {
+                    this.readUrl();
+                    this.search();
+                });
+            },
+
+            // ----- URL state (same parameter names as the category toolbar) -----
+            readUrl() {
+                const params = new URLSearchParams(window.location.search);
+                this.query = (params.get(config.queryParam) || '').trim();
+                this.page = Math.max(1, parseInt(params.get('p'), 10) || 1);
+                const limit = parseInt(params.get('product_list_limit'), 10);
+                this.limit = config.limits.includes(limit) ? limit : config.perPage;
+                this.mode = params.get('product_list_mode') === 'list' ? 'list' : 'grid';
+                this.sort = SORTS.includes(params.get('product_list_order')) ? params.get('product_list_order') : 'relevance';
+                this.dir = params.get('product_list_dir') === 'desc' ? 'desc' : 'asc';
+                this.categories = splitList(params.get('cat'));
+                const [from, to] = (params.get('price') || '').split('-');
+                this.minPrice = toNumber(from);
+                this.maxPrice = toNumber(to);
+                this.priceFrom = this.minPrice ?? '';
+                this.priceTo = this.maxPrice ?? '';
+                this.inStockOnly = params.get('stock') === '1';
+                this.attributes = {};
+                this.otherParams = [];
+                for (const [key, value] of params.entries()) {
+                    if (RESERVED_PARAMS.includes(key)) {
+                        continue;
+                    }
+                    // Only Magento filterable attributes filter; other parameters (___store, utm_*, ...) are
+                    // kept in the URL as they are.
+                    if (Object.prototype.hasOwnProperty.call(config.filterable, key)) {
+                        if (splitList(value).length) {
+                            this.attributes[key] = splitList(value);
+                        }
+                    } else {
+                        this.otherParams.push([key, value]);
+                    }
+                }
+            },
+            urlFor(changes) {
+                const state = Object.assign({
+                    page: this.page,
+                    limit: this.limit,
+                    mode: this.mode,
+                    sort: this.sort,
+                    dir: this.dir,
+                    categories: this.categories,
+                    attributes: this.attributes,
+                    minPrice: this.minPrice,
+                    maxPrice: this.maxPrice,
+                    inStockOnly: this.inStockOnly
+                }, changes || {});
+                const params = new URLSearchParams({[config.queryParam]: this.query});
+                this.otherParams.forEach(([key, value]) => params.append(key, value));
+                if (state.categories.length) {
+                    params.set('cat', state.categories.join(','));
+                }
+                for (const [code, values] of Object.entries(state.attributes)) {
+                    if (values.length) {
+                        params.set(code, values.join(','));
+                    }
+                }
+                if (state.minPrice !== null || state.maxPrice !== null) {
+                    params.set('price', (state.minPrice ?? '') + '-' + (state.maxPrice ?? ''));
+                }
+                if (state.inStockOnly) {
+                    params.set('stock', '1');
+                }
+                if (state.sort !== 'relevance') {
+                    params.set('product_list_order', state.sort);
+                }
+                if (state.dir === 'desc') {
+                    params.set('product_list_dir', 'desc');
+                }
+                if (state.mode === 'list') {
+                    params.set('product_list_mode', 'list');
+                }
+                if (state.limit !== config.perPage) {
+                    params.set('product_list_limit', state.limit);
+                }
+                if (state.page > 1) {
+                    params.set('p', state.page);
+                }
+                return window.location.pathname + '?' + params;
+            },
+            update(changes, keepPage) {
+                Object.assign(this, changes);
+                if (!keepPage) {
+                    this.page = 1;
+                }
+                window.history.pushState({}, '', this.urlFor());
+                this.search();
+            },
+
+            // ----- data -----
+            hasAttributeFilters() {
+                return (this.selectedAttributes() || []).length > 0;
+            },
+            selectedAttributes() {
+                const attrs = [];
+                for (const [code, values] of Object.entries(this.attributes)) {
+                    if (Array.isArray(values)) {
+                        for (const val of values) {
+                            if (val !== null && val !== undefined && String(val).trim() !== '') {
+                                attrs.push(`${code}:${String(val).trim()}`);
+                            }
+                        }
+                    }
+                }
+                return attrs.length ? attrs : null;
+            },
+            sortBy() {
+                if (this.sort === 'price') {
+                    return this.dir === 'desc' ? 'price_desc' : 'price_asc';
+                }
+                return this.sort === 'newest' ? 'newest' : null;
+            },
+            search() {
+                if (controller) {
+                    controller.abort();
+                    controller = null;
+                }
+                if (!this.query) {
+                    this.hits = [];
+                    this.total = 0;
+                    this.facets = [];
+                    this.searched = true;
+                    this.loading = false;
+                    return;
+                }
+
+                const selectedAttrs = this.selectedAttributes();
+                const hasActiveFilters = Boolean(
+                    (selectedAttrs && selectedAttrs.length) ||
+                    this.categories.length ||
+                    this.minPrice !== null ||
+                    this.maxPrice !== null ||
+                    this.inStockOnly
+                );
+                const filters = {
+                    query: this.query,
+                    storeView: config.storeView || config.storeCode,
+                    storeCode: config.storeCode || config.storeView,
+                    searchType: config.searchType,
+                    hasFilter: hasActiveFilters,
+                    category: this.categories.length ? this.categories.join(',') : null,
+                    minPrice: this.minPrice,
+                    maxPrice: this.maxPrice,
+                    inStockOnly: this.inStockOnly || null,
+                    sortBy: this.sortBy(),
+                    attributes: selectedAttrs
+                };
+                const baseKey = JSON.stringify({
+                    query: this.query,
+                    storeView: filters.storeView,
+                    category: filters.category,
+                    minPrice: filters.minPrice,
+                    maxPrice: filters.maxPrice,
+                    inStockOnly: filters.inStockOnly
+                });
+
+                controller = new AbortController();
+                const signal = controller.signal;
+                const current = ++requestId;
+                this.loading = true;
+                this.failed = false;
+
+                const request = (params, fields) => fetch(config.graphqlUrl, {
+                    method: 'POST',
+                    signal,
+                    mode: 'cors',
+                    credentials: 'omit',
+                    headers: context.headers({'Content-Type': 'application/json', 'x-api-key': config.searchKey}),
+                    body: JSON.stringify({query: searchQuery(params, fields)})
+                }).then(response => response.json().catch(() => null).then(payload => {
+                    const data = payload && payload.data && payload.data.searchCatalog;
+                    return response.ok && data ? data : Promise.reject(new Error(response.status));
+                }));
+
+                const page = request(Object.assign({page: this.page, perPage: this.limit}, filters));
+                const pool = baseKey === poolKey
+                    ? Promise.resolve(null)
+                    : request(Object.assign({}, filters, {page: 1, perPage: CLIENT_FILTER_LIMIT, hasFilter: false, attributes: null}))
+                        .catch(error => error.name === 'AbortError' ? Promise.reject(error) : {hits: []});
+
+                Promise.all([page, pool])
+                    .then(([data, poolData]) => {
+                        if (current !== requestId) {
+                            return;
+                        }
+                        const destination = data.redirected ? product.absoluteUrl(data.destinationUrl) : '';
+                        if (destination) {
+                            window.location.replace(destination);
+                            return;
+                        }
+                        const hits = Array.isArray(data.hits) ? data.hits : [];
+                        const aggs = Array.isArray(data.aggregations) ? data.aggregations : [];
+                        if (aggs.length > 0) {
+                            this.baseFacets = this.readFacets(aggs);
+                        }
+                        if (poolData) {
+                            poolKey = baseKey;
+                            poolHits = Array.isArray(poolData.hits) ? poolData.hits : [];
+                        }
+                        if (this.hasAttributeFilters() && !hits.length && poolHits.length) {
+                            this.applyClientFilters();
+                        } else {
+                            this.hits = hits;
+                            this.total = data.total_found || 0;
+                            this.buildFacets();
+                            this.loading = false;
+                            this.searched = true;
+                        }
+                    })
+                    .catch(error => {
+                        if (error.name === 'AbortError' || current !== requestId) {
+                            return;
+                        }
+                        this.hits = [];
+                        this.total = 0;
+                        this.loading = false;
+                        this.searched = true;
+                        this.failed = true;
+                    });
+            },
+            matchesAttributes(hit, exceptCode) {
+                return Object.entries(this.attributes).every(([code, values]) => {
+                    if (code === exceptCode || !values.length) {
+                        return true;
+                    }
+                    const own = hitValues(hit, code).map(item => item.key);
+                    return values.some(value => own.includes(String(value).toLowerCase()));
+                });
+            },
+            applyClientFilters() {
+                const filtered = poolHits.filter(hit => this.matchesAttributes(hit));
+                this.total = filtered.length;
+                const lastPage = Math.max(1, Math.ceil(this.total / this.limit));
+                if (this.page > lastPage) {
+                    this.page = lastPage;
+                }
+                this.hits = filtered.slice((this.page - 1) * this.limit, this.page * this.limit);
+                this.buildFacets();
+                this.loading = false;
+                this.searched = true;
+            },
+            // Categories and price come from the searchCatalog aggregations; attribute filters are built from
+            // the attribute values of all results (the API only aggregates some of them), for every attribute
+            // that is filterable in Magento, with Magento's label and option order.
+            buildFacets() {
+                const attributeFacets = [];
+                for (const [code, attribute] of Object.entries(config.filterable)) {
+                    if (RESERVED_PARAMS.includes(code)) {
+                        continue;
+                    }
+                    // Counts: results that match the other attribute filters and have the value.
+                    const pool = poolHits.filter(hit => this.matchesAttributes(hit, code));
+                    const options = new Map();
+                    for (const hit of pool) {
+                        for (const item of hitValues(hit, code)) {
+                            const option = options.get(item.key) || {value: item.label, label: item.label, count: 0};
+                            option.count++;
+                            options.set(item.key, option);
+                        }
+                    }
+                    // Selected values stay visible even when no result has them any more.
+                    for (const value of (this.attributes[code] || [])) {
+                        if (!options.has(String(value).toLowerCase())) {
+                            options.set(String(value).toLowerCase(), {value, label: value, count: 0});
+                        }
+                    }
+                    if (!options.size) {
+                        continue;
+                    }
+                    const order = attribute.options || [];
+                    const position = (option) => {
+                        const index = order.indexOf(String(option.label).toLowerCase());
+                        return index === -1 ? order.length : index;
+                    };
+                    attributeFacets.push({
+                        key: code,
+                        kind: 'attribute',
+                        label: attribute.label,
+                        options: [...options.values()].sort((a, b) => position(a) - position(b)
+                            || String(a.label).localeCompare(String(b.label), undefined, {numeric: true}))
+                    });
+                }
+                this.facets = this.baseFacets.concat(attributeFacets);
+            },
+            readFacets(aggregations) {
+                return aggregations
+                    .filter(agg => agg && (agg.key === 'categories'
+                        || (agg.data && !Array.isArray(agg.data) && typeof agg.data === 'object' && 'min' in agg.data)))
+                    .sort((a, b) => (a.order || 0) - (b.order || 0))
+                    .map(agg => {
+                        const label = product.decode(agg.label || agg.key);
+                        if (agg.key !== 'categories') {
+                            return {
+                                key: agg.key,
+                                kind: 'price',
+                                label,
+                                min: Math.floor(Number(agg.data.min) || 0),
+                                max: Math.ceil(Number(agg.data.max) || 0)
+                            };
+                        }
+                        // Categories filter by name, and names repeat across the tree ("Tops" under Men and
+                        // Women): merge options with the same name and add up their counts.
+                        const byName = new Map();
+                        for (const item of (Array.isArray(agg.data) ? agg.data : [])) {
+                            if (!item || !(item.label || item.key)) {
+                                continue;
+                            }
+                            const name = product.decode(item.label || item.key);
+                            // Categories the index has no name for come back as their bare ID.
+                            if (/^\d+$/.test(name)) {
+                                continue;
+                            }
+                            const known = byName.get(name.toLowerCase());
+                            if (known) {
+                                known.count += Number(item.count) || 0;
+                            } else {
+                                byName.set(name.toLowerCase(), {value: name, label: name, count: Number(item.count) || 0});
+                            }
+                        }
+                        const options = [...byName.values()];
+                        return options.length ? {key: agg.key, kind: 'category', label, options} : null;
+                    })
+                    .filter(Boolean);
+            },
+
+            // ----- filters -----
+            selectedValues(facet) {
+                return facet.kind === 'category' ? this.categories : (this.attributes[facet.key] || []);
+            },
+            isSelected(facet, option) {
+                return this.selectedValues(facet).some(value => same(value, option.value));
+            },
+            visibleOptions(facet) {
+                return facet.options.filter(option => option.count > 0 || this.isSelected(facet, option));
+            },
+            toggleChanges(facet, option) {
+                const values = this.selectedValues(facet);
+                const next = this.isSelected(facet, option)
+                    ? values.filter(value => !same(value, option.value))
+                    : values.concat([option.value]);
+                return facet.kind === 'category'
+                    ? {categories: next}
+                    : {attributes: Object.assign({}, this.attributes, {[facet.key]: next})};
+            },
+            toggleUrl(facet, option) {
+                return this.urlFor(Object.assign({page: 1}, this.toggleChanges(facet, option)));
+            },
+            toggle(facet, option) {
+                this.update(this.toggleChanges(facet, option));
+            },
+            isSwatchFacet(facet) {
+                return facet.kind === 'attribute' && !!config.swatches[facet.key];
+            },
+            swatch(facet, option) {
+                const swatches = config.swatches[facet.key] || {};
+                return swatches[String(option.label).toLowerCase()] || swatches[String(option.value).toLowerCase()]
+                    || {type: 'text', value: option.label};
+            },
+            activeFilters() {
+                const active = [];
+                const facetLabel = (key, fallback) => (this.facets.find(facet => facet.key === key) || {}).label || fallback;
+                for (const value of this.categories) {
+                    active.push({
+                        id: 'cat:' + value,
+                        name: facetLabel('categories', '<?= $escaper->escapeJs(__('Category')) ?>'),
+                        label: value,
+                        remove: {categories: this.categories.filter(item => !same(item, value))}
+                    });
+                }
+                for (const [code, values] of Object.entries(this.attributes)) {
+                    const facet = this.facets.find(item => item.key === code);
+                    for (const value of values) {
+                        const option = facet && facet.options.find(item => same(item.value, value));
+                        active.push({
+                            id: code + ':' + value,
+                            name: facetLabel(code, code),
+                            label: option ? option.label : value,
+                            remove: {attributes: Object.assign({}, this.attributes, {[code]: values.filter(item => !same(item, value))})}
+                        });
+                    }
+                }
+                if (this.minPrice !== null || this.maxPrice !== null) {
+                    const priceFacet = this.facets.find(facet => facet.kind === 'price');
+                    active.push({
+                        id: 'price',
+                        name: priceFacet ? priceFacet.label : '<?= $escaper->escapeJs(__('Price')) ?>',
+                        label: this.priceRangeLabel(),
+                        remove: {minPrice: null, maxPrice: null, priceFrom: '', priceTo: ''}
+                    });
+                }
+                if (this.inStockOnly) {
+                    active.push({
+                        id: 'stock',
+                        name: '<?= $escaper->escapeJs(__('Availability')) ?>',
+                        label: '<?= $escaper->escapeJs(__('In stock only')) ?>',
+                        remove: {inStockOnly: false}
+                    });
+                }
+                return active;
+            },
+            removeUrl(filter) {
+                return this.urlFor(Object.assign({page: 1}, filter.remove));
+            },
+            removeFilter(filter) {
+                this.update(filter.remove);
+            },
+            clearAllChanges() {
+                return {categories: [], attributes: {}, minPrice: null, maxPrice: null, inStockOnly: false, priceFrom: '', priceTo: ''};
+            },
+            clearAllUrl() {
+                return this.urlFor(Object.assign({page: 1}, this.clearAllChanges()));
+            },
+            clearAll() {
+                this.update(this.clearAllChanges());
+            },
+            applyPrice() {
+                let from = toNumber(this.priceFrom);
+                let to = toNumber(this.priceTo);
+                if (from !== null && to !== null && from > to) {
+                    [from, to] = [to, from];
+                }
+                this.update({minPrice: from, maxPrice: to, priceFrom: from ?? '', priceTo: to ?? ''});
+            },
+            priceRangeLabel() {
+                const currency = this.hits[0] && this.hits[0].currencyCode;
+                const from = this.minPrice !== null ? product.formatPrice(this.minPrice, currency) : '';
+                const to = this.maxPrice !== null ? product.formatPrice(this.maxPrice, currency) : '';
+                if (from && to) {
+                    return from + ' - ' + to;
+                }
+                return from
+                    ? hyva.str('<?= $escaper->escapeJs(__('%1 and above')) ?>', from)
+                    : hyva.str('<?= $escaper->escapeJs(__('%1 and below')) ?>', to);
+            },
+
+            // ----- toolbar -----
+            totalPages() {
+                return Math.max(1, Math.ceil(this.total / this.limit));
+            },
+            pageNumbers() {
+                const last = this.totalPages();
+                const start = Math.max(1, Math.min(this.page - 2, last - 4));
+                const pages = [];
+                for (let n = start; n <= Math.min(last, start + 4); n++) {
+                    pages.push(n);
+                }
+                return pages;
+            },
+            goTo(page) {
+                if (page < 1 || page > this.totalPages() || page === this.page) {
+                    return;
+                }
+                this.update({page}, true);
+                const list = document.getElementById('product-list');
+                if (list) {
+                    list.scrollIntoView({behavior: 'smooth', block: 'start'});
+                }
+            },
+            amountLabel() {
+                if (this.total <= this.limit) {
+                    return this.total === 1
+                        ? '<?= $escaper->escapeJs(__('%1 Item', 1)) ?>'
+                        : hyva.str('<?= $escaper->escapeJs(__('%1 Items')) ?>', this.total);
+                }
+                const first = (this.page - 1) * this.limit + 1;
+                const last = Math.min(this.page * this.limit, this.total);
+                return hyva.str('<?= $escaper->escapeJs(__('Items %1-%2 of %3')) ?>', first, last, this.total);
+            },
+            setSort(sort) {
+                this.update({sort, dir: 'asc'});
+            },
+
+            // ----- products -----
+            productName: hit => product.name(hit),
+            productImage: hit => product.image(hit),
+            productUrl: hit => product.url(hit),
+            prices: hit => product.prices(hit),
+            formatPrice: (value, hit) => product.formatPrice(value, hit && hit.currencyCode),
+            isInStock: hit => product.isInStock(hit),
+            description(hit) {
+                const text = product.decode(String(hit.description || '').replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
+                return text.length > 240 ? text.slice(0, 240) + '…' : text;
+            },
+            cartMode(hit) {
+                return window.nexoraiqCart ? window.nexoraiqCart.mode(hit) : (product.isInStock(hit) ? 'options' : 'out');
+            },
+            cartLabel(hit) {
+                const state = this.cartState[hit.id];
+                return state === 'adding' ? '<?= $escaper->escapeJs(__('Adding...')) ?>'
+                    : state === 'added' ? '<?= $escaper->escapeJs(__('Added')) ?>'
+                    : (window.nexoraiqCart ? window.nexoraiqCart.config.label : '');
+            },
+            addToCart(hit) {
+                if (this.cartState[hit.id] === 'adding') {
+                    return;
+                }
+                this.cartState[hit.id] = 'adding';
+                window.nexoraiqCart.add(hit, 1, this.query).then(outcome => {
+                    this.cartState[hit.id] = outcome === 'added' ? 'added' : '';
+                    if (outcome === 'added') {
+                        setTimeout(() => {
+                            if (this.cartState[hit.id] === 'added') {
+                                this.cartState[hit.id] = '';
+                            }
+                        }, 2000);
+                    }
+                });
+            },
+            trackClick(hit) {
+                window.nexoraiqAnalytics.click(hit, this.query);
+            }
+        };
+
+        window.addEventListener('alpine:init', () => {
+            product = window.nexoraiqProduct;
+            context = window.nexoraiqContext;
+            // Both columns (filters, product list) render the same store as "s".
+            Alpine.data('nxqSearchView', () => ({
+                get s() {
+                    return Alpine.store('nxqSearch');
+                }
+            }));
+            Alpine.store('nxqSearch', store);
+        }, {once: true});
+    })();
+</script>
+<?php $hyvaCsp->registerInlineScript() ?>
+<section class="py-8" id="product-list" aria-label="<?= $escaper->escapeHtmlAttr(__('Product list')) ?>" tabindex="-1"
+         x-data="nxqSearchView">
+    <div class="message info empty" x-cloak x-show="!s.query">
+        <div><?= $escaper->escapeHtml(__('Enter a search term to find products.')) ?></div>
+    </div>
+    <div class="message error" x-cloak x-show="s.failed && !s.loading">
+        <div><?= $escaper->escapeHtml(__('Search is temporarily unavailable. Please try again.')) ?></div>
+    </div>
+    <div class="message info empty" x-cloak x-show="s.query && s.searched && !s.loading && !s.failed && !s.hits.length">
+        <div>
+            <span x-text="hyva.str('<?= $escaper->escapeJs(__('Your search "%1" returned no results.')) ?>', s.query)"></span>
+            <a class="underline" x-show="s.activeFilters().length" :href="s.clearAllUrl()" @click.prevent="s.clearAll()">
+                <?= $escaper->escapeHtml(__('Clear all filters')) ?>
+            </a>
+        </div>
+    </div>
+    <div class="nxq-sp-loading" x-cloak x-show="s.query && s.loading && !s.hits.length" role="status">
+        <span class="nxq-sp-spinner" aria-hidden="true"></span><?= $escaper->escapeHtml(__('Searching...')) ?>
+    </div>
+
+    <template x-if="s.hits.length">
+        <div>
+            <!-- Top toolbar: view mode + sorter (Magento_Catalog::product/list/toolbar.phtml) -->
+            <div class="toolbar toolbar-products grid grid-cols-4 sm:grid-cols-8 md:grid-cols-4 lg:grid-cols-8 grid-flow-row gap-2 items-center">
+                <nav class="modes invisible md:visible flex justify-center gap-1 mr-2 items-center px-2 py-2 rounded-md border border-gray-300 bg-white text-sm leading-5 w-20 order-1 col-span-1 sm:col-span-2 md:col-span-1 lg:col-span-2"
+                     aria-label="<?= $escaper->escapeHtmlAttr(__('Products view mode')) ?>">
+                    <button type="button" class="modes-mode w-6 h-6 mode-grid"
+                            :class="s.mode === 'grid' ? 'active' : 'opacity-50 hover:opacity-100'"
+                            :disabled="s.mode === 'grid'" title="<?= $escaper->escapeHtmlAttr(__('Grid')) ?>"
+                            aria-label="<?= $escaper->escapeHtmlAttr(__('Products view mode - Grid')) ?>"
+                            @click="s.update({mode: 'grid'}, true)"></button>
+                    <button type="button" class="modes-mode w-6 h-6 mode-list"
+                            :class="s.mode === 'list' ? 'active' : 'opacity-50 hover:opacity-100'"
+                            :disabled="s.mode === 'list'" title="<?= $escaper->escapeHtmlAttr(__('List')) ?>"
+                            aria-label="<?= $escaper->escapeHtmlAttr(__('Products view mode - List')) ?>"
+                            @click="s.update({mode: 'list'}, true)"></button>
+                </nav>
+                <div class="toolbar-sorter sorter flex items-center order-1 col-span-3 sm:col-span-6 md:col-span-3 lg:col-span-6 justify-end">
+                    <label class="inline-block mr-3">
+                        <select class="form-select sorter-options" aria-label="<?= $escaper->escapeHtmlAttr(__('Sort By')) ?>"
+                                @change="s.setSort($event.target.value)">
+                            <option value="relevance" :selected="s.sort === 'relevance'"><?= $escaper->escapeHtml(__('Relevance')) ?></option>
+                            <option value="newest" :selected="s.sort === 'newest'"><?= $escaper->escapeHtml(__('Newest')) ?></option>
+                            <option value="price" :selected="s.sort === 'price'"><?= $escaper->escapeHtml(__('Price')) ?></option>
+                        </select>
+                    </label>
+                    <button type="button" class="action sorter-action sort-desc" x-show="s.sort === 'price' && s.dir === 'desc'"
+                            title="<?= $escaper->escapeHtmlAttr(__('Set Ascending Direction')) ?>"
+                            @click="s.update({dir: 'asc'})">
+                        <?= $heroicons->sortAscendingHtml('', 24, 24, ['aria-hidden' => 'true']) ?>
+                    </button>
+                    <button type="button" class="action sorter-action sort-asc" x-show="s.sort === 'price' && s.dir !== 'desc'"
+                            title="<?= $escaper->escapeHtmlAttr(__('Set Descending Direction')) ?>"
+                            @click="s.update({dir: 'desc'})">
+                        <?= $heroicons->sortDescendingHtml('', 24, 24, ['aria-hidden' => 'true']) ?>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Products (Magento_Catalog::product/list.phtml + list/item.phtml) -->
+            <div class="products wrapper" :class="'mode-' + s.mode + ' products-' + s.mode">
+                <ul role="list" class="mx-auto pt-4 pb-12 grid gap-4 grid-cols-1"
+                    :class="{'sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3': s.mode === 'grid', 'nxq-sp-busy': s.loading}">
+                    <template x-for="hit in s.hits" :key="hit.id">
+                        <li class="flex flex-col">
+                            <div class="item product product-item card card-interactive grow flex flex-col w-full"
+                                 :class="{'md:flex-row': s.mode === 'list'}">
+                                <a :href="s.productUrl(hit)" :title="s.productName(hit)" tabindex="-1" @click="s.trackClick(hit)"
+                                   class="product photo product-item-photo block mx-auto mb-3"
+                                   :class="{'md:w-2/6 md:mb-0 md:shrink-0': s.mode === 'list'}">
+                                    <img class="product-image-photo" :src="s.productImage(hit)" :alt="s.productName(hit)"
+                                         width="360" height="360" loading="lazy" x-show="s.productImage(hit)">
+                                </a>
+                                <div class="product-info flex flex-col grow" :class="{'md:pl-5 md:w-4/6': s.mode === 'list'}">
+                                    <div class="mt-2 mb-1 items-center justify-center font-semibold text-lg text-center"
+                                         :class="{'md:text-left': s.mode === 'list'}">
+                                        <a class="product-item-link" :href="s.productUrl(hit)" @click="s.trackClick(hit)"
+                                           x-text="s.productName(hit)"></a>
+                                    </div>
+                                    <div class="mt-2 mb-1 nxq-sp-description" x-show="s.mode === 'list' && s.description(hit)"
+                                         x-text="s.description(hit)"></div>
+
+                                    <!-- Price box: special price / variant range, as Magento_Catalog price templates -->
+                                    <div class="pt-1">
+                                        <div class="price-box price-final_price">
+                                            <template x-if="s.prices(hit).isRange">
+                                                <span class="normal-price nxq-sp-price-range">
+                                                    <span class="price-container price-final_price tax weee">
+                                                        <span class="price-wrapper"><span class="price" x-text="s.formatPrice(s.prices(hit).min, hit)"></span></span>
+                                                        <span aria-hidden="true">–</span>
+                                                        <span class="price-wrapper"><span class="price" x-text="s.formatPrice(s.prices(hit).max, hit)"></span></span>
+                                                    </span>
+                                                </span>
+                                            </template>
+                                            <template x-if="!s.prices(hit).isRange && s.prices(hit).isSpecial">
+                                                <span>
+                                                    <span class="special-price">
+                                                        <span class="price-container price-final_price tax weee">
+                                                            <span class="price-label"><?= $escaper->escapeHtml(__('Special Price')) ?></span>
+                                                            <span class="price-wrapper"><span class="price" x-text="s.formatPrice(s.prices(hit).final, hit)"></span></span>
+                                                        </span>
+                                                    </span>
+                                                    <span class="old-price">
+                                                        <span class="price-container price-final_price tax weee">
+                                                            <span class="price-label"><?= $escaper->escapeHtml(__('Regular Price')) ?></span>
+                                                            <span class="price-wrapper"><span class="price" x-text="s.formatPrice(s.prices(hit).old, hit)"></span></span>
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                            </template>
+                                            <template x-if="!s.prices(hit).isRange && !s.prices(hit).isSpecial">
+                                                <span class="normal-price">
+                                                    <span class="price-container price-final_price tax weee">
+                                                        <span class="price-wrapper"><span class="price" x-text="s.formatPrice(s.prices(hit).final, hit)"></span></span>
+                                                    </span>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-auto pt-3 flex flex-wrap justify-between items-center gap-y-4 gap-x-2">
+                                        <?php if ($showAddToCart): ?>
+                                            <button type="button" class="btn btn-primary text-sm" x-show="s.cartMode(hit) === 'add'"
+                                                    :disabled="s.cartState[hit.id] === 'adding'" @click="s.addToCart(hit)"
+                                                    :aria-label="s.cartLabel(hit) + ' ' + s.productName(hit)">
+                                                <?= $lucideIcons->shoppingCartHtml('', 24, 24, ['aria-hidden' => 'true']) ?>
+                                                <span class="inline" :class="{'md:hidden lg:inline': s.mode === 'grid'}" x-text="s.cartLabel(hit)"></span>
+                                            </button>
+                                            <a class="btn btn-primary text-sm" x-show="s.cartMode(hit) === 'options'"
+                                               :href="s.productUrl(hit)" @click="s.trackClick(hit)"
+                                               :aria-label="'<?= $escaper->escapeJs(__('Choose Options')) ?> ' + s.productName(hit)">
+                                                <?= $lucideIcons->pencilHtml('', 24, 24, ['aria-hidden' => 'true']) ?>
+                                                <span class="inline" :class="{'md:hidden lg:inline': s.mode === 'grid'}">
+                                                    <?= $escaper->escapeHtml(__('Choose Options')) ?>
+                                                </span>
+                                            </a>
+                                        <?php endif; ?>
+                                        <div x-show="!s.isInStock(hit)">
+                                            <p class="stock unavailable nxq-sp-stock"><span><?= $escaper->escapeHtml(__('Out of stock')) ?></span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+
+            <!-- Bottom toolbar: amount + pager + limiter -->
+            <div class="toolbar toolbar-products grid grid-cols-4 sm:grid-cols-8 md:grid-cols-4 lg:grid-cols-8 grid-flow-row gap-2 items-center">
+                <p class="toolbar-amount text-sm leading-5 text-gray-700 order-3 sm:order-2 md:order-3 lg:order-2 col-span-2 gap-x-1"
+                   x-text="s.amountLabel()"></p>
+                <div class="flex justify-center order-2 col-span-4">
+                    <nav class="pages flex gap-1 justify-center" aria-label="<?= $escaper->escapeHtmlAttr(__('pagination')) ?>"
+                         x-show="s.totalPages() > 1">
+                        <a :href="s.urlFor({page: s.page - 1})" @click.prevent="s.goTo(s.page - 1)"
+                           class="pages-item-previous <?= $escaper->escapeHtmlAttr($pagerButtonClass) ?>"
+                           :aria-disabled="s.page <= 1 ? 'true' : 'false'" :tabindex="s.page <= 1 ? -1 : 0"
+                           aria-label="<?= $escaper->escapeHtmlAttr(__('Previous Page')) ?>">
+                            <?= $lucideIcons->arrowLeftHtml('', 20, 20, ['aria-hidden' => 'true']) ?>
+                        </a>
+                        <ol class="inline-flex gap-1">
+                            <template x-for="n in s.pageNumbers()" :key="n">
+                                <li class="item">
+                                    <a :href="s.urlFor({page: n})" @click.prevent="s.goTo(n)"
+                                       class="<?= $escaper->escapeHtmlAttr($pagerButtonClass) ?>"
+                                       :aria-current="n === s.page ? 'page' : null" x-text="n"
+                                       :aria-label="hyva.str('<?= $escaper->escapeJs(__('Page %1')) ?>', n)"></a>
+                                </li>
+                            </template>
+                        </ol>
+                        <a :href="s.urlFor({page: s.page + 1})" @click.prevent="s.goTo(s.page + 1)"
+                           class="pages-item-next <?= $escaper->escapeHtmlAttr($pagerButtonClass) ?>"
+                           :aria-disabled="s.page >= s.totalPages() ? 'true' : 'false'" :tabindex="s.page >= s.totalPages() ? -1 : 0"
+                           aria-label="<?= $escaper->escapeHtmlAttr(__('Next Page')) ?>">
+                            <?= $lucideIcons->arrowRightHtml('', 20, 20, ['aria-hidden' => 'true']) ?>
+                        </a>
+                    </nav>
+                </div>
+                <div class="field limiter flex items-center order-3 sm:order-2 md:order-3 lg:order-2 col-span-2 justify-end">
+                    <div class="control">
+                        <label class="text-sm label">
+                            <span class="mr-2"><?= $escaper->escapeHtml(__('Show')) ?></span>
+                            <select class="form-select limiter-options" aria-label="<?= $escaper->escapeHtmlAttr(__('Show items per page')) ?>"
+                                    @change="s.update({limit: parseInt($event.target.value, 10)})">
+                                <template x-for="limit in s.config.limits" :key="limit">
+                                    <option :value="limit" x-text="limit" :selected="limit === s.limit"></option>
+                                </template>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+</section>

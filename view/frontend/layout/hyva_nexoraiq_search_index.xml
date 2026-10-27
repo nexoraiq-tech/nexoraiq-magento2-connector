@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ */
+-->
+<!-- Hyvä themes only: Alpine.js search results page. -->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="sidebar.main">
+            <block name="nexoraiq.search.filters" template="NexorAIQ_Connector::hyva/search/page/filters.phtml" before="-"/>
+        </referenceContainer>
+        <referenceContainer name="content">
+            <block name="nexoraiq.search.page" template="NexorAIQ_Connector::hyva/search/page.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

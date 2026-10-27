@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2025 NexoraIQ. All rights reserved.
+ */
+-->
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+
+    <!-- Public ping: confirms extension is installed + key is valid -->
+    <route url="/V1/nexoraiq/ping" method="GET">
+        <service class="NexorAIQ\Connector\Api\ConnectorInterface" method="ping"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <!-- Public active store views receiver: updates active store views list pushed from NexoraIQ -->
+    <route url="/V1/nexoraiq/active-store-views" method="POST">
+        <service class="NexorAIQ\Connector\Api\ActiveStoreViewsInterface" method="update"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <!--
+        Public store info: websites, store views, product counts.
+        Requires the NexoraIQ connection key as a query param, e.g. /V1/nexoraiq/store-info?key=<connectionKey>
+    -->
+    <route url="/V1/nexoraiq/store-info" method="GET">
+        <service class="NexorAIQ\Connector\Api\StoreInfoInterface" method="getStoreInfo"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <!--
+        Public status: confirms the extension is installed and whether the integration exists.
+        Used by NexoraIQ onboarding to detect that the extension is present.
+    -->
+    <route url="/V1/nexoraiq/status" method="GET">
+        <service class="NexorAIQ\Connector\Api\IntegrationInterface" method="getStatus"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <!--
+        Admin-only: returns the NexoraIQ integration access token.
+        Call with: Authorization: Bearer <magento-admin-token>
+        Used during NexoraIQ onboarding to auto-fill the connection key.
+    -->
+    <route url="/V1/nexoraiq/connection" method="GET">
+        <service class="NexorAIQ\Connector\Api\IntegrationInterface" method="getCredentials"/>
+        <resources>
+            <resource ref="NexorAIQ_Connector::connection"/>
+        </resources>
+    </route>
+
+    <!-- Public search config API: returns the store layout and search client configuration -->
+    <route url="/V1/nexoraiq/config" method="GET">
+        <service class="NexorAIQ\Connector\Api\ConfigRepositoryInterface" method="getStoreConfig"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <!-- Public search proxy API -->
+    <route url="/V1/nexoraiq/search" method="GET">
+        <service class="NexorAIQ\Connector\Api\SearchRepositoryInterface" method="search"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <!-- Public autocomplete proxy API -->
+    <route url="/V1/nexoraiq/autocomplete" method="GET">
+        <service class="NexorAIQ\Connector\Api\SearchRepositoryInterface" method="autocomplete"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <!-- Secure proxy to track search queries -->
+    <route url="/V1/nexoraiq/analytics/search" method="POST">
+        <service class="NexorAIQ\Connector\Api\SearchRepositoryInterface" method="trackSearch"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <!-- Secure proxy to log storefront CLICK events (NexorAIQ logEvent, per store view) -->
+    <route url="/V1/nexoraiq/analytics/event" method="POST">
+        <service class="NexorAIQ\Connector\Api\SearchRepositoryInterface" method="trackEvent"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <!-- Clear/reset product sync status records before resync -->
+    <route url="/V1/nexoraiq/sync-status/reset" method="POST">
+        <service class="NexorAIQ\Connector\Api\SyncStatusInterface" method="reset"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+    <!-- Batch add/update product sync status records during resync -->
+    <route url="/V1/nexoraiq/sync-status/update-batch" method="POST">
+        <service class="NexorAIQ\Connector\Api\SyncStatusInterface" method="updateBatch"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
+
+</routes>

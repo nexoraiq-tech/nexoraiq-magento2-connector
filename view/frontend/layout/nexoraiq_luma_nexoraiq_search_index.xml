@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2026 NexoraIQ. All rights reserved.
+ */
+-->
+<!-- Luma / Blank / any non-Hyvä theme only: RequireJS search results page. -->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="NexorAIQ_Connector::css/luma/search-page.css"/>
+    </head>
+    <body>
+        <referenceContainer name="sidebar.main">
+            <block name="nexoraiq.search.filters" template="NexorAIQ_Connector::luma/search/page/filters.phtml" before="-">
+                <arguments>
+                    <argument name="nxq_page" xsi:type="object">NexorAIQ\Connector\ViewModel\SearchPage</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+        <referenceContainer name="content">
+            <block name="nexoraiq.search.page" template="NexorAIQ_Connector::luma/search/page.phtml">
+                <arguments>
+                    <argument name="nxq_page" xsi:type="object">NexorAIQ\Connector\ViewModel\SearchPage</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>
