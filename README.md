@@ -26,11 +26,20 @@ It provides out-of-the-box support for **Hyvä Themes**, standard **Luma / Blank
 
 ---
 
-## Requirements
+## Requirements & Compatibility
 
-- **Magento**: Open Source / Commerce / Mage-OS 2.4.x
-- **PHP**: 8.1, 8.2, or 8.3
-- **NexorAIQ Account**: Active account with API credentials
+The NexorAIQ Connector targets the **Magento Open Source, Adobe Commerce, and Mage-OS 2.4.x** release family, including **Magento / Adobe Commerce 2.4.9**.
+
+| Platform version | PHP compatibility | Guidance |
+| --- | --- | --- |
+| **Magento / Adobe Commerce 2.4.9** | **PHP 8.5**; PHP 8.4 is available for upgrade scenarios | Use PHP 8.5 for a production deployment on 2.4.9. Adobe's current guidance does not recommend PHP 8.4 for production on this release. |
+| **Magento / Adobe Commerce 2.4.8** | PHP 8.3 and 8.4, depending on the exact patch release | Confirm the patch-level system requirements before deployment. |
+| **Earlier Magento 2.4.x releases** | PHP version varies by release (including PHP 8.1–8.3 on applicable versions) | Match the PHP version to the exact Magento patch release; do not assume every PHP version works with every 2.4.x release. |
+
+- **NexorAIQ Account**: Active account with API credentials.
+- **Release validation**: Run the connector's staging checklist against your exact Magento patch and PHP runtime before production.
+
+See [Adobe Commerce system requirements](https://experienceleague.adobe.com/en/docs/commerce-operations/installation-guide/system-requirements) for the authoritative platform matrix.
 
 ---
 
@@ -278,7 +287,7 @@ Subsystem-specific log files are written under the Magento `var/log/NexoraIQ/` d
 
 Before deploying to production, verify the following in a staging Magento installation:
 
-- Confirm the exact Magento / Adobe Commerce / Mage-OS and PHP versions supported by the package release.
+- Confirm the exact Magento / Adobe Commerce / Mage-OS patch release and PHP runtime against the compatibility table and the official platform requirements. For 2.4.9, use PHP 8.5 for production; PHP 8.4 is listed for upgrade scenarios, not recommended for production.
 - Run Magento compilation, static content deployment where required, and cache flush; check that the module enables without DI or schema errors.
 - Verify the connection from Magento Admin and confirm the store view, credentials, and subscription state.
 - Run `bin/magento indexer:reindex nexoraiq_catalog`, confirm the indexer completes, and verify queue processing with Magento cron.
@@ -290,7 +299,7 @@ Before deploying to production, verify the following in a staging Magento instal
 
 - The GraphQL `nexoraiqTrackEvent` mutation accepts click events; add-to-cart and conversion events are logged server-side. It does not accept a `revenue` argument.
 - The Composer install command works only when the package is published in a Composer repository accessible to the installing project.
-- The compatibility list describes the intended support range; test each production target version before deployment.
+- The connector targets Magento Open Source, Adobe Commerce, and Mage-OS 2.4.x, including 2.4.9. Platform-level PHP compatibility varies by exact patch release; Magento / Adobe Commerce 2.4.9 recommends PHP 8.5 for production, while PHP 8.4 is allowed for upgrade scenarios. Validate the connector on each target runtime before deployment.
 
 ## License
 
