@@ -1,5 +1,33 @@
 # NexorAIQ | AI Commerce Search - Magento 2 Connector
 
+<div align="center">
+  <a href="https://www.nexoraiq.tech/">
+    <img src="https://www.nexoraiq.tech/artworks/01_logo_primary/svg/nexoraiq-logo-transparent.svg" alt="NexorAIQ — Search every product in any language" width="260" />
+  </a>
+  <p><strong>AI-powered search and multilingual product discovery for Magento.</strong></p>
+  <p>
+    <a href="https://github.com/nexoraiq-tech/nexoraiq-magento2-connector"><img src="https://img.shields.io/github/stars/nexoraiq-tech/nexoraiq-magento2-connector?style=flat-square&logo=github" alt="GitHub stars" /></a>
+    <a href="https://github.com/nexoraiq-tech/nexoraiq-magento2-connector/network"><img src="https://img.shields.io/github/forks/nexoraiq-tech/nexoraiq-magento2-connector?style=flat-square&logo=github" alt="GitHub forks" /></a>
+    <a href="https://github.com/nexoraiq-tech/nexoraiq-magento2-connector/issues"><img src="https://img.shields.io/github/issues/nexoraiq-tech/nexoraiq-magento2-connector?style=flat-square&logo=github" alt="Open issues" /></a>
+    <a href="https://github.com/nexoraiq-tech/nexoraiq-magento2-connector/releases"><img src="https://img.shields.io/github/v/release/nexoraiq-tech/nexoraiq-magento2-connector?style=flat-square&display_name=tag" alt="Latest GitHub release" /></a>
+    <img src="https://img.shields.io/badge/Magento-2.4.9%20%2B-EE672F?style=flat-square&logo=magento&logoColor=white" alt="Magento 2.4.9 and later target" />
+    <img src="https://img.shields.io/badge/PHP-8.5%20for%202.4.9-777BB4?style=flat-square&logo=php&logoColor=white" alt="PHP 8.5 guidance for Magento 2.4.9" />
+    <img src="https://img.shields.io/badge/License-Proprietary-555555?style=flat-square" alt="Proprietary license" />
+  </p>
+  <p>
+    <a href="https://www.nexoraiq.tech/">Website</a> ·
+    <a href="https://docs.nexoraiq.tech/">Developer Docs</a> ·
+    <a href="https://docs.nexoraiq.tech/graphql">GraphQL API</a> ·
+    <a href="https://status.nexoraiq.tech/">Service Status</a> ·
+    <a href="https://www.nexoraiq.tech/book-demo">Book a Demo</a>
+  </p>
+  <p>
+    <a href="https://www.linkedin.com/showcase/nexoraiqtech/">LinkedIn</a> ·
+    <a href="https://www.instagram.com/nexoraiqtech/">Instagram</a> ·
+    <a href="https://www.facebook.com/NexorAIQTech/">Facebook</a>
+  </p>
+</div>
+
 The **NexorAIQ Connector** (`NexorAIQ_Connector`) is the official Magento 2 extension for integrating [NexorAIQ](https://www.nexoraiq.tech) AI-powered search, autocomplete, product discovery, and shopper telemetry.
 
 It provides out-of-the-box support for **Hyvä Themes**, standard **Luma / Blank** themes, and **Headless** (PWA, React, Next.js) storefront architectures with automatic theme detection.
