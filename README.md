@@ -301,6 +301,14 @@ Before deploying to production, verify the following in a staging Magento instal
 - The Composer install command works only when the package is published in a Composer repository accessible to the installing project.
 - The connector targets Magento Open Source, Adobe Commerce, and Mage-OS 2.4.x, including 2.4.9. Platform-level PHP compatibility varies by exact patch release; Magento / Adobe Commerce 2.4.9 recommends PHP 8.5 for production, while PHP 8.4 is allowed for upgrade scenarios. Validate the connector on each target runtime before deployment.
 
+## Security
+
+Please report vulnerabilities privately; see [SECURITY.md](SECURITY.md). Do not publish credentials, customer data, or exploitable details in public issues. Review endpoint authorization, request validation, rate limiting, and log redaction before production deployment.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for documented release notes. Confirm release contents against the tagged source/package before publishing.
+
 ## License
 
 Proprietary. Copyright © NexorAIQ. All rights reserved.
