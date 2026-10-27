@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" width="1000" height="680" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <!-- Window Container -->
+  <rect width="1000" height="680" rx="8" fill="#f8f9fa"/>
+  <rect width="1000" height="680" rx="8" fill="none" stroke="#d1d5db" stroke-width="1.5"/>
+
+  <!-- Admin Header Bar -->
+  <rect width="1000" height="52" rx="8" fill="#303030"/>
+  <rect y="44" width="1000" height="8" fill="#303030"/>
+  <circle cx="24" cy="26" r="6" fill="#eb5252"/>
+  <circle cx="44" cy="26" r="6" fill="#f5a623"/>
+  <circle cx="64" cy="26" r="6" fill="#50e3c2"/>
+  <text x="96" y="31" fill="#f3f4f6" font-size="13" font-weight="600" letter-spacing="0.5">MAGENTO ADMIN PANEL</text>
+  <text x="320" y="31" fill="#9ca3af" font-size="12">Catalog &gt; Products &gt; Joust Duffle Bag (24-MB01)</text>
+  <rect x="850" y="14" width="126" height="26" rx="4" fill="#eb5252"/>
+  <text x="913" y="31" fill="#ffffff" font-size="12" font-weight="600" text-anchor="middle">Save Product</text>
+
+  <!-- Left Admin Sidebar -->
+  <rect x="0" y="52" width="70" height="628" fill="#1e1e1e"/>
+  <g fill="#9ca3af" font-size="9" text-anchor="middle">
+    <rect x="23" y="70" width="24" height="20" rx="2" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+    <text x="35" y="102">DASHBOARD</text>
+    <path d="M23 125h24v16H23z" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+    <text x="35" y="153">SALES</text>
+    <rect x="0" y="170" width="70" height="56" fill="#2d2d2d"/>
+    <rect x="0" y="170" width="4" height="56" fill="#eb5252"/>
+    <path d="M23 182h24v16H23z" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+    <text x="35" y="212" fill="#ffffff" font-weight="bold">CATALOG</text>
+    <circle cx="35" cy="245" r="9" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+    <text x="35" y="268">STORES</text>
+    <circle cx="35" cy="298" r="8" fill="#6f4cf6"/>
+    <text x="35" y="302" fill="#fff" font-size="10" font-weight="bold">AI</text>
+    <text x="35" y="322" fill="#6f4cf6" font-weight="bold">NEXORAIQ</text>
+  </g>
+
+  <!-- Main Content Area -->
+  <g transform="translate(90, 72)">
+    <!-- Product Title & Basic Info -->
+    <g transform="translate(0, 0)">
+      <text y="24" fill="#111827" font-size="20" font-weight="700">Joust Duffle Bag</text>
+      <rect x="180" y="6" width="65" height="22" rx="11" fill="#dcfce7"/>
+      <text x="212" y="21" fill="#15803d" font-size="11" font-weight="700" text-anchor="middle">Enabled</text>
+      <text x="260" y="22" fill="#6b7280" font-size="13">SKU: <tspan font-weight="600" fill="#111827">24-MB01</tspan> | Attribute Set: Bag | Price: $34.00</text>
+    </g>
+
+    <!-- NexorAIQ Product Sync Status Widget -->
+    <g transform="translate(0, 42)">
+      <rect width="886" height="180" rx="8" fill="#ffffff" stroke="#6f4cf6" stroke-width="2"/>
+      <rect width="886" height="42" rx="6" fill="#f4f1fe"/>
+      <line x1="0" y1="42" x2="886" y2="42" stroke="#e4e1f5" stroke-width="1"/>
+
+      <!-- Card Title & Sync Button -->
+      <g transform="translate(20, 16)">
+        <circle cx="10" cy="10" r="5" fill="#6f4cf6"/>
+        <text x="24" y="15" fill="#6f4cf6" font-size="14" font-weight="700">NexorAIQ Real-Time Catalog Sync Status</text>
+        <rect x="710" y="-3" width="140" height="28" rx="4" fill="#6f4cf6"/>
+        <text x="780" y="15" fill="#ffffff" font-size="12" font-weight="600" text-anchor="middle">⚡ Resync Product</text>
+      </g>
+
+      <!-- Sync Status Content Grid -->
+      <g transform="translate(24, 60)">
+        <!-- Default Store View Badge -->
+        <g transform="translate(0, 0)">
+          <rect width="400" height="96" rx="6" fill="#f9fafb" stroke="#e5e7eb"/>
+          <text x="16" y="24" fill="#111827" font-size="13" font-weight="600">Default Store View (ID: 1)</text>
+          <rect x="290" y="10" width="95" height="20" rx="10" fill="#dcfce7"/>
+          <text x="337" y="24" fill="#15803d" font-size="11" font-weight="700" text-anchor="middle">● SYNCED</text>
+          <text x="16" y="52" fill="#6b7280" font-size="12">Document ID: <tspan fill="#374151" font-family="monospace">prod_24-MB01_s1</tspan></text>
+          <text x="16" y="74" fill="#6b7280" font-size="12">Last Updated: <tspan fill="#10b981" font-weight="600">2 minutes ago</tspan> (HTTP 200 OK)</text>
+        </g>
+
+        <!-- Secondary Store View Badge -->
+        <g transform="translate(435, 0)">
+          <rect width="400" height="96" rx="6" fill="#f9fafb" stroke="#e5e7eb"/>
+          <text x="16" y="24" fill="#111827" font-size="13" font-weight="600">French Store View (ID: 2)</text>
+          <rect x="290" y="10" width="95" height="20" rx="10" fill="#dcfce7"/>
+          <text x="337" y="24" fill="#15803d" font-size="11" font-weight="700" text-anchor="middle">● SYNCED</text>
+          <text x="16" y="52" fill="#6b7280" font-size="12">Document ID: <tspan fill="#374151" font-family="monospace">prod_24-MB01_s2</tspan></text>
+          <text x="16" y="74" fill="#6b7280" font-size="12">Last Updated: <tspan fill="#10b981" font-weight="600">2 minutes ago</tspan> (HTTP 200 OK)</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- Standard Product Edit Fields Below -->
+    <g transform="translate(0, 240)">
+      <rect width="886" height="350" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+      <rect width="886" height="40" rx="8" fill="#fafafa"/>
+      <line x1="0" y1="40" x2="886" y2="40" stroke="#e5e7eb"/>
+      <text x="24" y="25" fill="#374151" font-size="13" font-weight="700">Product Details &amp; Inventory</text>
+
+      <g transform="translate(24, 60)">
+        <text y="15" fill="#6b7280" font-size="12">Product Name</text>
+        <rect x="180" y="-3" width="400" height="30" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="195" y="17" fill="#111827" font-size="12">Joust Duffle Bag</text>
+      </g>
+
+      <g transform="translate(24, 110)">
+        <text y="15" fill="#6b7280" font-size="12">SKU</text>
+        <rect x="180" y="-3" width="400" height="30" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="195" y="17" fill="#111827" font-size="12">24-MB01</text>
+      </g>
+
+      <g transform="translate(24, 160)">
+        <text y="15" fill="#6b7280" font-size="12">Price</text>
+        <rect x="180" y="-3" width="160" height="30" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="195" y="17" fill="#111827" font-size="12">$ 34.00</text>
+      </g>
+
+      <g transform="translate(24, 210)">
+        <text y="15" fill="#6b7280" font-size="12">Quantity</text>
+        <rect x="180" y="-3" width="160" height="30" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="195" y="17" fill="#111827" font-size="12">100</text>
+        <text x="360" y="17" fill="#10b981" font-size="12" font-weight="600">In Stock</text>
+      </g>
+
+      <g transform="translate(24, 260)">
+        <text y="15" fill="#6b7280" font-size="12">Brand / Manufacturer</text>
+        <rect x="180" y="-3" width="240" height="30" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="195" y="17" fill="#111827" font-size="12">Nexor Gear</text>
+        <path d="M400 13l4 4 4-4" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+      </g>
+    </g>
+  </g>
+</svg>

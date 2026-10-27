@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" width="1000" height="680" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <!-- Window Container -->
+  <rect width="1000" height="680" rx="8" fill="#f8f9fa"/>
+  <rect width="1000" height="680" rx="8" fill="none" stroke="#d1d5db" stroke-width="1.5"/>
+
+  <!-- Admin Header Bar -->
+  <rect width="1000" height="52" rx="8" fill="#303030"/>
+  <rect y="44" width="1000" height="8" fill="#303030"/>
+  <circle cx="24" cy="26" r="6" fill="#eb5252"/>
+  <circle cx="44" cy="26" r="6" fill="#f5a623"/>
+  <circle cx="64" cy="26" r="6" fill="#50e3c2"/>
+  <text x="96" y="31" fill="#f3f4f6" font-size="13" font-weight="600" letter-spacing="0.5">MAGENTO ADMIN PANEL</text>
+  <text x="320" y="31" fill="#9ca3af" font-size="12">Stores &gt; Configuration &gt; NexorAIQ &gt; General Settings</text>
+  <rect x="850" y="14" width="126" height="26" rx="4" fill="#6f4cf6"/>
+  <text x="913" y="31" fill="#ffffff" font-size="12" font-weight="600" text-anchor="middle">Save Config</text>
+
+  <!-- Left Admin Sidebar -->
+  <rect x="0" y="52" width="70" height="628" fill="#1e1e1e"/>
+  <g fill="#9ca3af" font-size="9" text-anchor="middle">
+    <rect x="23" y="70" width="24" height="20" rx="2" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+    <text x="35" y="102">DASHBOARD</text>
+    <path d="M23 125h24v16H23z" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+    <text x="35" y="153">SALES</text>
+    <path d="M23 175h24v16H23z" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+    <text x="35" y="203">CATALOG</text>
+    <rect x="0" y="220" width="70" height="56" fill="#2d2d2d"/>
+    <rect x="0" y="220" width="4" height="56" fill="#eb5252"/>
+    <circle cx="35" cy="240" r="9" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+    <text x="35" y="263" fill="#ffffff" font-weight="bold">STORES</text>
+    <circle cx="35" cy="298" r="8" fill="#6f4cf6"/>
+    <text x="35" y="302" fill="#fff" font-size="10" font-weight="bold">AI</text>
+    <text x="35" y="322" fill="#6f4cf6" font-weight="bold">NEXORAIQ</text>
+  </g>
+
+  <!-- Main Content Area -->
+  <g transform="translate(90, 72)">
+    <!-- NexorAIQ Branding Card -->
+    <rect width="886" height="135" rx="8" fill="#ffffff" stroke="#e4e1f5" stroke-width="1.5"/>
+    <rect width="886" height="4" rx="2" fill="#6f4cf6"/>
+
+    <!-- Branding Header Content -->
+    <g transform="translate(20, 16)">
+      <rect width="130" height="36" rx="6" fill="#f4f1fe"/>
+      <text x="65" y="24" fill="#6f4cf6" font-size="14" font-weight="bold" text-anchor="middle">NexorAIQ</text>
+      <text x="160" y="22" fill="#111827" font-size="16" font-weight="700">AI Commerce Search Connector</text>
+      <text x="160" y="38" fill="#6b7280" font-size="12">Syncs catalog to NexorAIQ and powers AI search, autocomplete and storefront discovery.</text>
+      <rect x="620" y="10" width="75" height="20" rx="10" fill="#ede9fe"/>
+      <text x="657" y="24" fill="#6f4cf6" font-size="10" font-weight="600" text-anchor="middle">v1.0.0</text>
+      <rect x="702" y="10" width="85" height="20" rx="10" fill="#e0f2fe"/>
+      <text x="744" y="24" fill="#0369a1" font-size="10" font-weight="600" text-anchor="middle">Mage-OS 2.4.x</text>
+      <rect x="794" y="10" width="80" height="20" rx="10" fill="#f3f4f6"/>
+      <text x="834" y="24" fill="#374151" font-size="10" font-weight="600" text-anchor="middle">Hyvä + Luma</text>
+    </g>
+
+    <!-- Branding Metric Stats -->
+    <g transform="translate(20, 72)">
+      <line x1="0" y1="0" x2="846" y2="0" stroke="#f3f4f6" stroke-width="1.5"/>
+      <!-- Stat 1 -->
+      <g transform="translate(10, 12)">
+        <text y="12" fill="#6b7280" font-size="10" font-weight="600" text-transform="uppercase">Extension</text>
+        <circle cx="6" cy="30" r="5" fill="#10b981"/>
+        <text x="18" y="34" fill="#111827" font-size="14" font-weight="700">Enabled</text>
+      </g>
+      <!-- Stat 2 -->
+      <g transform="translate(220, 12)">
+        <text y="12" fill="#6b7280" font-size="10" font-weight="600" text-transform="uppercase">Connection</text>
+        <circle cx="6" cy="30" r="5" fill="#10b981"/>
+        <text x="18" y="34" fill="#111827" font-size="14" font-weight="700">Key Configured</text>
+      </g>
+      <!-- Stat 3 -->
+      <g transform="translate(440, 12)">
+        <text y="12" fill="#6b7280" font-size="10" font-weight="600" text-transform="uppercase">Products Synced</text>
+        <text x="0" y="34" fill="#6f4cf6" font-size="16" font-weight="800">1,420</text>
+        <text x="50" y="34" fill="#10b981" font-size="11" font-weight="600">(0 queued)</text>
+      </g>
+      <!-- Stat 4 -->
+      <g transform="translate(660, 12)">
+        <text y="12" fill="#6b7280" font-size="10" font-weight="600" text-transform="uppercase">Real-Time Sync</text>
+        <rect x="0" y="20" width="60" height="20" rx="10" fill="#dcfce7"/>
+        <text x="30" y="34" fill="#15803d" font-size="11" font-weight="700" text-anchor="middle">ACTIVE</text>
+      </g>
+    </g>
+
+    <!-- General Settings Form Section -->
+    <g transform="translate(0, 155)">
+      <rect width="886" height="425" rx="8" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
+      <rect width="886" height="42" rx="8" fill="#fafafa"/>
+      <rect y="36" width="886" height="6" fill="#fafafa"/>
+      <line x1="0" y1="42" x2="886" y2="42" stroke="#e5e7eb" stroke-width="1"/>
+      <text x="24" y="26" fill="#111827" font-size="14" font-weight="700">General Settings</text>
+
+      <!-- Form Row 1: Enable Extension -->
+      <g transform="translate(24, 62)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Enable Extension</text>
+        <rect x="300" y="-3" width="260" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="315" y="18" fill="#111827" font-size="12">Yes</text>
+        <path d="M535 14l5 5 5-5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+      </g>
+
+      <!-- Form Row 2: Connection Key -->
+      <g transform="translate(24, 110)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Connection Key</text>
+        <rect x="300" y="-3" width="450" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="315" y="18" fill="#6b7280" font-size="12">nxk_live_9f82d1c7e4a5038b291a••••••••••••••</text>
+        <text x="300" y="44" fill="#6b7280" font-size="11">Your private administrator key from NexorAIQ Console.</text>
+      </g>
+
+      <!-- Form Row 3: NexorAIQ API URL -->
+      <g transform="translate(24, 168)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">NexorAIQ API URL</text>
+        <rect x="300" y="-3" width="450" height="32" rx="4" fill="#f3f4f6" stroke="#e5e7eb"/>
+        <text x="315" y="18" fill="#374151" font-size="12">https://api.nexoraiq.com/v1</text>
+        <text x="700" y="18" fill="#9ca3af" font-size="11">Read-only</text>
+      </g>
+
+      <!-- Form Row 4: Public Search API Key -->
+      <g transform="translate(24, 216)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Public Search API Key</text>
+        <rect x="300" y="-3" width="450" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="315" y="18" fill="#6b7280" font-size="12">key_search_7a3d2e1b4c8f095e••••••••••••••</text>
+        <text x="300" y="44" fill="#6b7280" font-size="11">Storefront read-only search key for client proxies.</text>
+      </g>
+
+      <!-- Form Row 5: Real-time Product Sync -->
+      <g transform="translate(24, 274)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Real-time Product Sync</text>
+        <rect x="300" y="-3" width="260" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="315" y="18" fill="#111827" font-size="12">Yes</text>
+        <path d="M535 14l5 5 5-5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+        <text x="300" y="44" fill="#6b7280" font-size="11">Push product and inventory changes instantly on save/delete.</text>
+      </g>
+
+      <!-- Form Row 6: Bulk Sync Batch Size -->
+      <g transform="translate(24, 332)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Bulk Sync Batch Size</text>
+        <rect x="300" y="-3" width="260" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="315" y="18" fill="#111827" font-size="12">100 (Recommended)</text>
+        <path d="M535 14l5 5 5-5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+        <text x="300" y="44" fill="#6b7280" font-size="11">Full Reindex Skip Window: 60 minutes</text>
+      </g>
+    </g>
+  </g>
+</svg>

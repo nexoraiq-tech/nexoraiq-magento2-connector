@@ -1,103 +1,169 @@
-# NexorAIQ | AI Commerce Search - Magento 2.4.x Connector (Hyvä + Luma / Blank / other themes)
+# NexorAIQ | AI Commerce Search - Magento 2 Connector
 
-`NexorAIQ_Connector` is the single connector for every storefront theme. It replaces the two older
-single-theme editions, `NexorAIQ_HyvaConnector` and `NexorAIQ_MagentoConnector` (keep those disabled:
-they share configuration paths, database tables, routes and API endpoints).
+The **NexorAIQ Connector** (`NexorAIQ_Connector`) is the official Magento 2 extension for integrating [NexorAIQ](https://nexoraiq.com) AI-powered search, autocomplete, product discovery, and shopper telemetry.
 
-## Theme switch
-
-The storefront UI follows the theme assigned to each store view in **Content > Design > Configuration**:
-
-| Theme assigned | Layout handles | Storefront UI |
-| --- | --- | --- |
-| Hyvä (`Hyva/*` or a child of it) | `hyva_*` (added by `Hyva_Theme`) | `view/frontend/templates/hyva/**` (Alpine.js), `web/css/hyva/*` |
-| Any other theme (Luma, Blank, ...) | `nexoraiq_luma_*` (added by `Observer/AddLumaLayoutHandles`) | `view/frontend/templates/luma/**` + `web/js/*` (RequireJS), `web/css/luma/*` |
-
-`Model/Theme/ThemeDetector` makes the decision (it uses Hyvä's own theme check when `Hyva_Theme` is
-installed). Everything else (admin settings, catalog sync, indexer, REST / GraphQL APIs, analytics) is shared.
-After changing the theme, flush the cache (`bin/magento cache:flush`).
-
-Storefront takeover:
-* **Header search** (Luma: `top.search`, `luma/search/form.phtml` + `js/search-form.js`;
-  Hyvä: `header-search`, `hyva/search/form.phtml` + `hyva/search/shared.phtml`):
-  NexorAIQ autocomplete dropdown or full screen overlay (1 or 2 columns), Add to Cart on the overlay.
-* **Search results page** (`nexoraiq_search_index`; Luma: `luma/search/page.phtml`, `luma/search/page/filters.phtml`
-  + `js/search-page.js`; Hyvä: `hyva/search/page.phtml`, `hyva/search/page/filters.phtml`): category page
-  markup (toolbar, grid / list, pager, layered navigation with swatches), multi-select filters, price range,
-  availability, Add to Cart.
-* Every NexorAIQ API call (browser and server) sends `x-session-id`, `x-user-id`
-  (`user_` + base64(email), or `guest_1`) and `x-device` (`web_desktop`, `web_mobile`, `web_tablet`).
-
-The **NexorAIQ Connector** is a secure, headless-first Magento 2 extension that synchronizes catalog information in real-time and acts as a secure reverse proxy for storefront search, autocomplete, and shopper behavior tracking (telemetry).
-
-By proxying all frontend search queries and analytics tracking events through Magento, the headless frontend (React, Next.js, etc.) never connects directly to the NexorAIQ SaaS backend, protecting your private API credentials and search keys from exposure on the client side.
+It provides out-of-the-box support for **Hyvä Themes**, standard **Luma / Blank** themes, and **Headless** (PWA, React, Next.js) storefront architectures with automatic theme detection.
 
 ---
 
-## Features
+## Key Features
 
-1. **Real-time Catalog Indexing:** Hooks into product save/delete events. Automatically flags disabled products as deleted.
-2. **Multi-Source Inventory (MSI) Support:** Syncs warehouse inventory updates in real-time when ERP or admin updates warehouse quantities.
-3. **Checkout Stock Reservations:** Captures order placement checkout reservations, cancellations, shipments, and refunds to update salable stock immediately.
-4. **Secure Search Proxy:** Proxy searches and autocomplete suggestions via GraphQL & REST.
-5. **Store-View Scoped Search Types:** Configure keyword, vector semantic, or hybrid AI search modes per store view.
-6. **Shopper Telemetry Tracking:** Proxy shopper search query logs, clicks, cart adds, and purchase event conversions to the SaaS analytics service.
+- **AI Search & Autocomplete**: Keyword, vector semantic, or hybrid search modes configurable per store view.
+- **Storefront UI Takeover**:
+  - Autocomplete dropdown or fullscreen search overlay (1-column or 2-column layout with suggestions, categories, and brands).
+  - Dedicated search results page with sorting, pagination, and layered navigation / swatches.
+  - Quick "Add to Cart" directly from the search overlay and search results page.
+- **Unified Theme Compatibility**:
+  - **Hyvä Theme**: Native Alpine.js templates and Tailwind CSS styling.
+  - **Luma & Blank Themes**: RequireJS and responsive CSS.
+  - **Headless / PWA**: Secure GraphQL & REST search proxies.
+- **Real-Time Catalog Sync**: Hooks into product save/delete events to instantly sync catalog changes to NexorAIQ.
+- **Multi-Source Inventory (MSI) & Reservations**: Captures stock changes, warehouse inventory updates, and checkout stock reservations in real-time.
+- **Headless Search Proxy**: All client-side search and telemetry requests are proxied securely through Magento, protecting your private API keys.
+- **Shopper Telemetry & Analytics**: Captures search query interactions, product clicks, cart adds, and order conversions to continuously train search relevance.
+- **Admin Sync Status**: Displays real-time sync status badges per store view on the product edit page, with on-demand manual sync capability.
+- **Categorized Logging**: Isolated logging per subsystem (`var/log/NexoraIQ/`) for easy troubleshooting.
 
 ---
 
-## Installation & Setup
+## Requirements
 
-1. Copy the code into the directory `app/code/NexorAIQ/Connector/` on your Magento 2.4.x server
-   (or `composer require nexoraiq/module-connector`). If `NexorAIQ_HyvaConnector` or
-   `NexorAIQ_MagentoConnector` is installed, disable and remove it first.
-2. Run standard Magento compilation and upgrade scripts:
-   ```bash
-   php bin/magento setup:upgrade
-   php bin/magento setup:di:compile
-   php bin/magento cache:flush
-   ```
+- **Magento**: Open Source / Commerce / Mage-OS 2.4.x
+- **PHP**: 8.1, 8.2, or 8.3
+- **NexorAIQ Account**: Active account with API credentials
+
+---
+
+## Installation
+
+### 1. Install via Composer
+
+Run the following command in your Magento root directory:
+
+```bash
+composer require nexoraiq/connector
+```
+
+### 2. Enable and Deploy
+
+```bash
+bin/magento module:enable NexorAIQ_Connector
+bin/magento setup:upgrade
+bin/magento setup:di:compile
+bin/magento setup:static-content:deploy -f
+bin/magento cache:flush
+```
 
 ---
 
 ## Configuration
 
-In the Magento Admin Dashboard, navigate to **Stores > Configuration > NexorAIQ | AI Commerce Search > General Settings**:
-* **Enabled:** Enable/disable the integration.
-* **API URL:** The URL of the NexorAIQ API instance (e.g. `https://api.nexoraiq.tech`).
-* **Connection Key:** Your secure administrator key (encrypted in database).
-* **Search Key:** Storefront public search key used automatically by the search proxies.
-* **Search Type:** Search mode (`keyword`, `vector`, `hybrid`) configured per store view.
+Navigate to **Stores > Configuration > NexorAIQ** in the Magento Admin Panel.
+
+### 1. General Settings (**NexorAIQ > General Settings**)
+
+| Setting | Description |
+| --- | --- |
+| **Enable Extension** | Enable or disable the NexorAIQ integration. |
+| **Connection Key** | Your private administrator key (`nxk_live_...`) from the NexorAIQ dashboard. |
+| **Public Search API Key** | Your public search API key (`key_search_...`) used by frontend search proxies. |
+| **Real-time Product Sync** | Automatically push product and stock changes to NexorAIQ on save/delete. |
+| **Bulk Sync Batch Size** | Number of products processed per batch during reindex (100, 150, 200, 300). |
+| **Full Reindex Skip Window** | Skip products synced within X minutes during a full reindex (set 0 to reindex all). |
+| **Attributes Configuration** | Select extra product attributes to sync beyond standard searchable/filterable attributes. |
+| **Brands Configuration** | Map brand/manufacturer attributes for brand filtering and overlay sections. |
+
+### 2. Storefront Settings (**NexorAIQ > Storefront**)
+
+| Setting | Description |
+| --- | --- |
+| **Enable Storefront UI Takeover** | Enables NexorAIQ autocomplete and search results takeover. |
+| **Search Type** | Retrieval strategy: `Keyword`, `Vector`, or `Hybrid` (configurable per store view). |
+| **Desktop / Mobile Search Layout** | Choose between **Autocomplete Dropdown** or **Overlay Layout**. |
+| **Overlay Layout Type** | 1-Column layout or 2-Columns layout (adds Suggestions, Categories, and Brands blocks). |
+| **Search Results Page** | Enable custom search page route (e.g., `/search?q=...`), pagination, and filters. |
+| **Add to Cart Button** | Enable quick Add-to-Cart buttons on the overlay and search results page. |
+
+---
+
+## Admin Panel Screenshots
+
+### 1. General Settings & Connection Status
+*Navigate to: **Stores > Configuration > NexorAIQ > General Settings***
+
+![NexorAIQ General Settings](docs/screenshots/admin-general-settings.svg)
+
+- **Branded Header Banner**: Displays real-time connector status, live product sync counter, store views count, and active plan verification.
+- **Connection Key**: Securely binds your Magento catalog with your NexorAIQ cluster (`nxk_live_...`).
+- **Real-Time Sync**: Pushes instant updates on product saves, deletions, and MSI stock adjustments.
+
+---
+
+### 2. Storefront UI Takeover & Search Modes
+*Navigate to: **Stores > Configuration > NexorAIQ > Storefront***
+
+![NexorAIQ Storefront Configuration](docs/screenshots/admin-storefront-settings.svg)
+
+- **Search Type**: Choose between `Keyword`, `Vector` (AI semantic), or `Hybrid` search retrieval.
+- **Responsive Layout**: Choose **Autocomplete Dropdown** or **Overlay Layout** (1-Column or 2-Columns with suggestions, brands, and categories).
+- **Direct Add to Cart**: Enable quick conversion actions right within the search overlay and search results page.
+
+---
+
+### 3. Attributes & Brands Configuration
+*Navigate to: **Stores > Configuration > NexorAIQ > General Settings > Attributes / Brands***
+
+![NexorAIQ Attributes and Brands Mapping](docs/screenshots/admin-attributes-brands.svg)
+
+- **Extra Attributes**: Select non-standard product attributes to include in the AI search index.
+- **Brand Identification**: Map custom manufacturer/brand attributes for brand facet filtering and dedicated overlay brand carousels.
+
+---
+
+### 4. Product Edit Page - Real-Time Sync Status Badge
+*Navigate to: **Catalog > Products > Edit Product***
+
+![NexorAIQ Product Catalog Sync Status](docs/screenshots/admin-product-sync-status.svg)
+
+- **Live Status Badges**: See instant synchronization status (`SYNCED`, `IN QUEUE`, or `SKIPPED`) across each active store view.
+- **On-Demand Resync**: Click **Resync Product** to trigger an immediate background or direct sync of the current entity.
+
+---
+
+## Indexing & Synchronization
+
+### Full Reindex via CLI
+
+To reindex your entire catalog into NexorAIQ, run:
+
+```bash
+bin/magento indexer:reindex nexoraiq_catalog
+```
+
+To check the indexer status:
+
+```bash
+bin/magento indexer:status nexoraiq_catalog
+```
+
+### Automated Background Queue
+
+The connector registers a background cron job (`nexoraiq_index_queue`) that runs every minute to asynchronously process and synchronize queued product updates. Ensure your Magento cron is running:
+
+```bash
+bin/magento cron:run
+```
 
 ---
 
 ## Headless API Reference
 
-### 1. GraphQL API Specifications
+The connector provides secure proxy endpoints for headless storefronts (PWA Studio, Next.js, Vue Storefront, etc.).
 
-All GraphQL endpoints are accessible at `/graphql`.
+### GraphQL API (`/graphql`)
 
-#### A. Retrieve search configuration & keys
-Use this query to fetch storefront credentials, facets, column structures, and autocomplete configs dynamically.
+#### Product Search
 
-**Query:**
-```graphql
-query {
-  nexoraiqSearchConfig(storeId: 1) {
-    general {
-      enabled
-      apiUrl
-      publicSearchKey
-    }
-  }
-}
-```
-
----
-
-#### B. Storefront Search
-Proxy storefront product searches securely through Magento.
-
-**Query:**
 ```graphql
 query {
   nexoraiqSearch(
@@ -127,12 +193,8 @@ query {
 }
 ```
 
----
+#### Autocomplete Suggestions
 
-#### C. Autocomplete & Suggestions
-Retrieve search queries suggestions and matching products.
-
-**Query:**
 ```graphql
 query {
   nexoraiqAutocomplete(query: "back") {
@@ -148,112 +210,67 @@ query {
 }
 ```
 
----
+#### Telemetry: Track Search Query
 
-#### D. Telemetry: Track Search Query Logs
-Log shopper search query interactions to train relevance algorithms.
-
-**Mutation:**
 ```graphql
 mutation {
   nexoraiqTrackSearch(
     query: "backpack"
-    sessionId: "session_user_99a8c"
+    sessionId: "sess_abc123"
     resultsCount: 24
-    tookMs: 45
+    tookMs: 35
     device: "Desktop"
   )
 }
 ```
-*Returns `true` on success, `false` otherwise.*
 
----
+#### Telemetry: Track Shopper Event (Click, Cart Add, Conversion)
 
-#### E. Telemetry: Track Shopper Click & Conversion Events
-Track shopper clicks, cart actions, and purchases.
-
-**Mutation:**
 ```graphql
 mutation {
   nexoraiqTrackEvent(
-    eventType: "CLICK"  # Options: CLICK, ADD_TO_CART, CONVERSION
-    productId: "2039"
+    eventType: "CLICK" # Options: CLICK, ADD_TO_CART, CONVERSION
+    productId: "1234"
     query: "backpack"
-    sessionId: "session_user_99a8c"
-    revenue: 45.00      # Optional (only for purchase conversion events)
+    sessionId: "sess_abc123"
+    revenue: 49.99     # Optional (for CONVERSION)
   )
 }
 ```
-*Returns `true` on success, `false` otherwise.*
 
 ---
 
-### 2. REST API Specifications
+### REST API
 
-All REST endpoints accept and return JSON payloads.
+All REST endpoints operate under `/rest/V1/nexoraiq/`:
 
-#### A. Search Products
-* **Endpoint:** `GET /rest/V1/nexoraiq/search`
-* **Query Parameters:**
-  * `query` (string, required)
-  * `currentPage` (int, default 1)
-  * `pageSize` (int, default 12)
-  * `category` (string, optional)
-  * `minPrice` (float, optional)
-  * `maxPrice` (float, optional)
-  * `sortBy` (string, optional)
-  * `inStockOnly` (boolean, optional)
-
-**Example Call:**
-```bash
-curl -s "https://yourmagento.com/rest/V1/nexoraiq/search?query=backpack&currentPage=1&pageSize=5"
-```
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/rest/V1/nexoraiq/search?query={query}` | Search catalog products |
+| `GET` | `/rest/V1/nexoraiq/autocomplete?query={query}` | Autocomplete suggestions and products |
+| `GET` | `/rest/V1/nexoraiq/config` | Retrieve storefront search configuration |
+| `POST` | `/rest/V1/nexoraiq/analytics/search` | Track search query logs |
+| `POST` | `/rest/V1/nexoraiq/analytics/event` | Track shopper events (clicks, add to cart, conversions) |
 
 ---
 
-#### B. Autocomplete & Suggestions
-* **Endpoint:** `GET /rest/V1/nexoraiq/autocomplete`
-* **Query Parameters:**
-  * `query` (string, required)
+## Logs & Diagnostics
 
-**Example Call:**
-```bash
-curl -s "https://yourmagento.com/rest/V1/nexoraiq/autocomplete?query=back"
-```
+Subsystem-specific log files are written under the Magento `var/log/NexoraIQ/` directory:
 
----
-
-#### C. Telemetry: Track Search Query Logs
-* **Endpoint:** `POST /rest/V1/nexoraiq/analytics/search`
-* **JSON Body Parameters:**
-  * `query` (string, required)
-  * `sessionId` (string, required)
-  * `resultsCount` (int, required)
-  * `tookMs` (int, required)
-  * `userId` (string, optional)
-  * `device` (string, optional)
-
-**Example Call:**
-```bash
-curl -X POST -H "Content-Type: application/json" \
-  -d '{"query": "backpack", "sessionId": "sess_123", "resultsCount": 24, "tookMs": 35}' \
-  https://yourmagento.com/rest/V1/nexoraiq/analytics/search
-```
+| Log File | Subsystem |
+| --- | --- |
+| `var/log/NexoraIQ/indexer.log` | Bulk catalog reindexing and sync queue processing |
+| `var/log/NexoraIQ/cron.log` | Scheduled background index queue executions |
+| `var/log/NexoraIQ/observer.log` | Real-time product and stock save/delete observers |
+| `var/log/NexoraIQ/plugin.log` | MSI source items and inventory reservation plugins |
+| `var/log/NexoraIQ/webhook.log` | Outbound HTTP synchronization calls to NexorAIQ |
+| `var/log/NexoraIQ/api.log` | REST API proxy requests and responses |
+| `var/log/NexoraIQ/graphql.log` | GraphQL query and mutation resolvers |
+| `var/log/NexoraIQ/admin.log` | Admin sync actions and configuration changes |
 
 ---
 
-#### D. Telemetry: Track Shopper Events
-* **Endpoint:** `POST /rest/V1/nexoraiq/analytics/event`
-* **JSON Body Parameters:**
-  * `eventType` (string, required) - `CLICK`, `ADD_TO_CART`, `CONVERSION`
-  * `productId` (string, required)
-  * `query` (string, required)
-  * `sessionId` (string, required)
-  * `revenue` (float, optional)
+## License
 
-**Example Call:**
-```bash
-curl -X POST -H "Content-Type: application/json" \
-  -d '{"eventType": "CLICK", "productId": "2039", "query": "backpack", "sessionId": "sess_123"}' \
-  https://yourmagento.com/rest/V1/nexoraiq/analytics/event
-```
+Proprietary. Copyright © NexorAIQ. All rights reserved.

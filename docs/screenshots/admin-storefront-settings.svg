@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" width="1000" height="680" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <!-- Window Container -->
+  <rect width="1000" height="680" rx="8" fill="#f8f9fa"/>
+  <rect width="1000" height="680" rx="8" fill="none" stroke="#d1d5db" stroke-width="1.5"/>
+
+  <!-- Admin Header Bar -->
+  <rect width="1000" height="52" rx="8" fill="#303030"/>
+  <rect y="44" width="1000" height="8" fill="#303030"/>
+  <circle cx="24" cy="26" r="6" fill="#eb5252"/>
+  <circle cx="44" cy="26" r="6" fill="#f5a623"/>
+  <circle cx="64" cy="26" r="6" fill="#50e3c2"/>
+  <text x="96" y="31" fill="#f3f4f6" font-size="13" font-weight="600" letter-spacing="0.5">MAGENTO ADMIN PANEL</text>
+  <text x="320" y="31" fill="#9ca3af" font-size="12">Stores &gt; Configuration &gt; NexorAIQ &gt; Storefront</text>
+  <rect x="850" y="14" width="126" height="26" rx="4" fill="#6f4cf6"/>
+  <text x="913" y="31" fill="#ffffff" font-size="12" font-weight="600" text-anchor="middle">Save Config</text>
+
+  <!-- Left Admin Sidebar -->
+  <rect x="0" y="52" width="70" height="628" fill="#1e1e1e"/>
+  <g fill="#9ca3af" font-size="9" text-anchor="middle">
+    <rect x="23" y="70" width="24" height="20" rx="2" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+    <text x="35" y="102">DASHBOARD</text>
+    <path d="M23 125h24v16H23z" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+    <text x="35" y="153">SALES</text>
+    <path d="M23 175h24v16H23z" fill="none" stroke="#9ca3af" stroke-width="1.5"/>
+    <text x="35" y="203">CATALOG</text>
+    <rect x="0" y="220" width="70" height="56" fill="#2d2d2d"/>
+    <rect x="0" y="220" width="4" height="56" fill="#eb5252"/>
+    <circle cx="35" cy="240" r="9" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+    <text x="35" y="263" fill="#ffffff" font-weight="bold">STORES</text>
+    <circle cx="35" cy="298" r="8" fill="#6f4cf6"/>
+    <text x="35" y="302" fill="#fff" font-size="10" font-weight="bold">AI</text>
+    <text x="35" y="322" fill="#6f4cf6" font-weight="bold">NEXORAIQ</text>
+  </g>
+
+  <!-- Main Content Area -->
+  <g transform="translate(90, 72)">
+    <!-- Scope Selector Bar -->
+    <g transform="translate(0, 0)">
+      <text y="20" fill="#4b5563" font-size="12" font-weight="600">Scope:</text>
+      <rect x="52" y="2" width="220" height="28" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+      <text x="64" y="20" fill="#111827" font-size="12">Default Store View</text>
+      <path d="M252 14l4 4 4-4" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+      <text x="290" y="20" fill="#6b7280" font-size="11">Per-store view configuration supported</text>
+    </g>
+
+    <!-- Storefront UI Form Section -->
+    <g transform="translate(0, 42)">
+      <rect width="886" height="550" rx="8" fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"/>
+      <rect width="886" height="42" rx="8" fill="#fafafa"/>
+      <rect y="36" width="886" height="6" fill="#fafafa"/>
+      <line x1="0" y1="42" x2="886" y2="42" stroke="#e5e7eb" stroke-width="1"/>
+      <text x="24" y="26" fill="#111827" font-size="14" font-weight="700">Storefront UI Configuration</text>
+
+      <!-- Field 1: Enable UI Takeover -->
+      <g transform="translate(24, 62)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Enable Storefront UI Takeover</text>
+        <rect x="320" y="-3" width="260" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="335" y="18" fill="#111827" font-size="12">Yes</text>
+        <path d="M555 14l5 5 5-5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+        <text x="320" y="44" fill="#6b7280" font-size="11">Replaces native search with NexorAIQ autocomplete and instant search overlay.</text>
+      </g>
+
+      <!-- Field 2: Search Type -->
+      <g transform="translate(24, 120)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Search Type</text>
+        <rect x="320" y="-3" width="260" height="32" rx="4" fill="#ffffff" stroke="#6f4cf6" stroke-width="1.5"/>
+        <text x="335" y="18" fill="#6f4cf6" font-size="12" font-weight="600">Hybrid (Keyword + Vector Semantic)</text>
+        <path d="M555 14l5 5 5-5" stroke="#6f4cf6" stroke-width="1.5" fill="none"/>
+        <text x="320" y="44" fill="#6b7280" font-size="11">Select between Keyword, Vector (AI Semantic), or Hybrid retrieval.</text>
+      </g>
+
+      <!-- Field 3: Desktop Search Layout -->
+      <g transform="translate(24, 178)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Desktop Search Layout</text>
+        <rect x="320" y="-3" width="260" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="335" y="18" fill="#111827" font-size="12">Overlay Layout</text>
+        <path d="M555 14l5 5 5-5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+        <text x="320" y="44" fill="#6b7280" font-size="11">Full search takeover overlay on desktop &amp; tablet viewports (&gt;= 768px).</text>
+      </g>
+
+      <!-- Field 4: Mobile Search Layout -->
+      <g transform="translate(24, 236)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Mobile Search Layout</text>
+        <rect x="320" y="-3" width="260" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="335" y="18" fill="#111827" font-size="12">Overlay Layout</text>
+        <path d="M555 14l5 5 5-5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+        <text x="320" y="44" fill="#6b7280" font-size="11">Responsive mobile experience across Hyvä and Luma themes.</text>
+      </g>
+
+      <!-- Field 5: Overlay Layout Type -->
+      <g transform="translate(24, 294)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Overlay Layout Type</text>
+        <rect x="320" y="-3" width="260" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="335" y="18" fill="#111827" font-size="12">2 Columns (Suggestions + Categories + Products)</text>
+        <path d="M555 14l5 5 5-5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+        <text x="320" y="44" fill="#6b7280" font-size="11">Left column displays Suggestions, Categories &amp; Brands; right column shows Product hits.</text>
+      </g>
+
+      <!-- Field 6: Limits -->
+      <g transform="translate(24, 352)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Autocomplete &amp; Product Limits</text>
+        <rect x="320" y="-3" width="120" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="335" y="18" fill="#111827" font-size="12">8 items</text>
+        <path d="M415 14l5 5 5-5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+
+        <rect x="460" y="-3" width="120" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="475" y="18" fill="#111827" font-size="12">12 products</text>
+        <path d="M555 14l5 5 5-5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+        <text x="320" y="44" fill="#6b7280" font-size="11">Autocomplete dropdown limit: 8 | Overlay products limit: 12</text>
+      </g>
+
+      <!-- Field 7: Add to Cart Button -->
+      <g transform="translate(24, 410)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Quick Add to Cart Button</text>
+        <rect x="320" y="-3" width="260" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="335" y="18" fill="#111827" font-size="12">Yes</text>
+        <path d="M555 14l5 5 5-5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+        <text x="320" y="44" fill="#6b7280" font-size="11">Renders instant Add-to-Cart buttons directly on overlay product cards.</text>
+      </g>
+
+      <!-- Field 8: Search Results Page -->
+      <g transform="translate(24, 468)">
+        <text y="15" fill="#374151" font-size="13" font-weight="600">Custom Search Results Page</text>
+        <rect x="320" y="-3" width="260" height="32" rx="4" fill="#ffffff" stroke="#d1d5db"/>
+        <text x="335" y="18" fill="#111827" font-size="12">Yes (/search?q=...)</text>
+        <path d="M555 14l5 5 5-5" stroke="#6b7280" stroke-width="1.5" fill="none"/>
+        <text x="320" y="44" fill="#6b7280" font-size="11">Overrides Magento default catalogsearch page with faceted AI navigation.</text>
+      </g>
+    </g>
+  </g>
+</svg>
