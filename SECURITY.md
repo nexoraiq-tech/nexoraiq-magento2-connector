@@ -4,7 +4,7 @@
 
 Please do not report exploitable security issues in public GitHub issues.
 
-Email **security@nexoraiq.tech** with a concise description, impact, affected versions, and reproducible steps where safe. Do not include customer data, production credentials, or live API keys. If this address is not monitored, contact NexorAIQ through the official website: https://www.nexoraiq.tech/.
+Contact NexorAIQ through the official website at https://www.nexoraiq.tech/ and request a private security-reporting channel. Include a concise description, impact, affected versions, and reproducible steps where safe. Do not include customer data, production credentials, or live API keys.
 
 Please allow the maintainers reasonable time to investigate and coordinate a fix before public disclosure. Do not test against systems or stores you do not own or have explicit permission to assess.
 
