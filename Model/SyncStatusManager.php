@@ -287,8 +287,9 @@ class SyncStatusManager
 
     /**
      * Check if a product was successfully synced for a store view within the last $withinSeconds seconds.
+     * Only considers a product recently synced if the previous sync actually included full stock data.
      */
-    public function isRecentlySynced(int $productId, int $storeId, int $withinSeconds = 300): bool
+    public function isRecentlySynced(int $productId, int $storeId, int $withinSeconds = 300, bool $requireStock = true): bool
     {
         $this->ensureTableExists();
         try {
@@ -303,6 +304,10 @@ class SyncStatusManager
                 ->where('is_synced = 1')
                 ->where('last_synced_at >= ?', $cutoff);
 
+            if ($requireStock) {
+                $select->where("indexed_fields LIKE '%qty%' OR indexed_fields LIKE '%stock%'");
+            }
+
             $row = $connection->fetchOne($select);
             return !empty($row);
         } catch (\Throwable $e) {
@@ -316,9 +321,12 @@ class SyncStatusManager
      * were successfully synced for $storeId within the last $withinSeconds seconds.
      *
      * @param int[] $productIds
+     * @param int $storeId
+     * @param int $withinSeconds
+     * @param bool $requireStock
      * @return int[]
      */
-    public function getRecentlySyncedProductIds(array $productIds, int $storeId, int $withinSeconds): array
+    public function getRecentlySyncedProductIds(array $productIds, int $storeId, int $withinSeconds, bool $requireStock = true): array
     {
         if (empty($productIds) || $withinSeconds <= 0) {
             return [];
@@ -336,6 +344,10 @@ class SyncStatusManager
                 ->where('store_id = ?', $storeId)
                 ->where('is_synced = 1')
                 ->where('last_synced_at >= ?', $cutoff);
+
+            if ($requireStock) {
+                $select->where("indexed_fields LIKE '%qty%' OR indexed_fields LIKE '%stock%'");
+            }
 
             return array_map('intval', $connection->fetchCol($select));
         } catch (\Throwable $e) {

@@ -12,9 +12,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional telemetry attribution metrics for advanced merchandising campaigns.
 - Enhanced multi-warehouse inventory batching for high-throughput enterprise catalogs.
 
+## [1.0.1] - 2026-10-28
+
+Maintenance and performance release focusing on inventory batch query optimizations, manual resync override control, stock-aware deduplication, and refined admin plan UI.
+
+### Changed
+- **Direct Database Stock Batching in ProductRepositoryPlugin**: Replaced collection-based stock item queries with direct `ResourceConnection` SQL querying against `cataloginventory_stock_item` to eliminate DI adapter instantiation crashes on bulk product requests.
+- **Admin Subscription Plan & Usage UI**:
+  - Renamed the usage header in the General Settings plan card from `Usage this period` to `Plan / Usage this period`.
+  - Hid the redundant static `Plan limits` tile grid in favor of unified visual resource progress meters.
+  - Added `'usage'` data mapping in `Controller\Adminhtml\System\PlanInfo` response.
+- **Brand Consistency**: Standardized internal log messages and code comments to `NexorAIQ`.
+
+### Added
+- **Manual Product Resync Force Flag**: Added `$force` parameter support to `CatalogAction::execute($ids, $force)` and wired it to `Controller\Adminhtml\Product\Sync`, allowing on-demand manual product resyncs from the Magento Admin to immediately bypass the 5-minute deduplication skip window.
+- **Stock-Aware Sync Deduplication**: Added `$requireStock = true` check to `SyncStatusManager::isRecentlySynced()` and `getRecentlySyncedProductIds()`, ensuring products are only skipped if their previous sync record contains complete stock/quantity data.
+
 ---
 
 ## [1.0.0] - 2026-10-28
+
 
 Initial stable release of the **NexorAIQ Magento 2 Connector**, providing enterprise AI-powered search, multilingual product discovery, automated catalog synchronization, and shopper telemetry for Magento Open Source, Adobe Commerce, and Mage-OS.
 

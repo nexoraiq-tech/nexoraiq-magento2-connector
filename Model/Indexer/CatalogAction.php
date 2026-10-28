@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2025 NexoraIQ. All rights reserved.
+ * Copyright © 2025 NexorAIQ. All rights reserved.
  */
 declare(strict_types=1);
 
@@ -36,14 +36,15 @@ class CatalogAction
 
     /**
      * Reindex specific product IDs (from mview changelog or direct list).
-     * Handles both enable→sync and disable→remove-from-NexoraIQ scenarios.
+     * Handles both enable→sync and disable→remove-from-NexorAIQ scenarios.
      *
      * @param int[] $ids
+     * @param bool $force Force sync without skipping recently synced products (used by manual UI sync/reindex)
      * @return int[] Product IDs that failed to sync for at least one store view — callers
      *               (e.g. Cron\IndexQueue) should re-queue these so a transient failure
      *               (API down, mapping error) is retried instead of silently dropped.
      */
-    public function execute(array $ids): array
+    public function execute(array $ids, bool $force = false): array
     {
         if (!$this->helper->isEnabled()) {
             return [];
@@ -79,7 +80,7 @@ class CatalogAction
                 }
 
                 $this->logger->info(
-                    sprintf('NexoraIQ Indexer: Processing %d product updates for store view %s', count($ids), $storeCode)
+                    sprintf('NexorAIQ Indexer: Processing %d product updates for store view %s', count($ids), $storeCode)
                 );
 
                 $batchSize = $this->helper->getBatchSize($storeId);
@@ -90,9 +91,9 @@ class CatalogAction
                     $payloads = [];
                     foreach ($chunkIds as $productId) {
                         try {
-                            // Deduplication: If real-time webhook already synced this product within last 5 mins, skip duplicate bulk HTTP call
-                            if ($this->syncStatusManager->isRecentlySynced($productId, $storeId, 300)) {
-                                $this->logger->info(sprintf('NexoraIQ Indexer: Product ID %d recently synced via real-time for store %s, skipping bulk sync.', $productId, $storeCode));
+                            // Deduplication: If real-time webhook already synced this product with full stock within last 5 mins, skip duplicate bulk HTTP call
+                            if (!$force && $this->syncStatusManager->isRecentlySynced($productId, $storeId, 300, true)) {
+                                $this->logger->info(sprintf('NexorAIQ Indexer: Product ID %d recently synced via real-time for store %s, skipping bulk sync.', $productId, $storeCode));
                                 continue;
                             }
 
@@ -100,7 +101,7 @@ class CatalogAction
                             $productStatus = (string)$product->getStatus();
 
                             if ($productStatus === self::STATUS_DISABLED) {
-                                // Product was disabled in Magento — remove it from NexoraIQ search index
+                                // Product was disabled in Magento — remove it from NexorAIQ search index
                                 $payloads[] = [
                                     'entity_id'       => $productId,
                                     'status'          => 'disabled',
@@ -121,7 +122,7 @@ class CatalogAction
                             ];
                         } catch (\Throwable $e) {
                             $this->logger->error(
-                                sprintf('NexoraIQ Indexer failed mapping product ID %d for store %s: %s', $productId, $storeCode, $e->getMessage())
+                                sprintf('NexorAIQ Indexer failed mapping product ID %d for store %s: %s', $productId, $storeCode, $e->getMessage())
                             );
                             $failedProductIds[] = $productId;
                         }
@@ -158,7 +159,7 @@ class CatalogAction
      * Products already synced successfully within the configurable "full reindex skip window"
      * are excluded from the enqueue (see getRecentlySyncedProductIds()) so a full reindex only
      * re-queues what actually needs it, instead of blindly resending the whole catalog every
-     * time. The queue itself is store-agnostic (nexoraiq_sync_queue keys on product_id only —
+     * time. The queue itself is store-agnostic (NexorAIQ_sync_queue keys on product_id only —
      * a dequeued product syncs to all active stores), so a product is only skipped if it was
      * recently synced in EVERY active store; otherwise it's queued to cover the stale store(s).
      */
@@ -172,7 +173,7 @@ class CatalogAction
         // enqueueing — Controller\Adminhtml\System\CheckSubscription calls executeFull()
         // explicitly once the block is confirmed cleared, so this will run again then.
         if ($this->syncBlockManager->isBlocked()) {
-            $this->logger->info('NexoraIQ Indexer: full reindex skipped — sync is currently blocked (see Check Subscription in General Settings).');
+            $this->logger->info('NexorAIQ Indexer: full reindex skipped — sync is currently blocked (see Check Subscription in General Settings).');
             return;
         }
 
@@ -207,7 +208,7 @@ class CatalogAction
                     foreach (array_chunk($storeProductIds, 5000) as $idChunk) {
                         $recentlySyncedIds = array_merge(
                             $recentlySyncedIds,
-                            $this->syncStatusManager->getRecentlySyncedProductIds($idChunk, $storeId, $skipWindowSeconds)
+                            $this->syncStatusManager->getRecentlySyncedProductIds($idChunk, $storeId, $skipWindowSeconds, true)
                         );
                     }
                 }
@@ -217,7 +218,7 @@ class CatalogAction
 
                 $this->logger->info(
                     sprintf(
-                        'NexoraIQ Indexer: Store %s — %d candidate(s), %d already synced within %d min (skipped), %d need resync',
+                        'NexorAIQ Indexer: Store %s — %d candidate(s), %d already synced within %d min (skipped), %d need resync',
                         $storeCode,
                         count($storeProductIds),
                         count($storeProductIds) - count($staleForStore),
@@ -238,14 +239,14 @@ class CatalogAction
 
             $this->logger->info(
                 sprintf(
-                    'NexoraIQ Indexer: Full reindex — %d candidate(s) total, %d skipped (recently synced), %d enqueued for async sync.',
+                    'NexorAIQ Indexer: Full reindex — %d candidate(s) total, %d skipped (recently synced), %d enqueued for async sync.',
                     $totalCandidates,
                     $totalSkipped,
                     count($staleProductIds)
                 )
             );
         } catch (\Throwable $e) {
-            $this->logger->error('NexoraIQ Indexer full reindex enqueue failed: ' . $e->getMessage());
+            $this->logger->error('NexorAIQ Indexer full reindex enqueue failed: ' . $e->getMessage());
         }
     }
 }

@@ -50,6 +50,7 @@ class PlanInfo extends Action implements HttpPostActionInterface
             'autoLoginUrl' => $loginUrl,
             'store'        => is_array($data['store'] ?? null) ? $data['store'] : [],
             'plan'         => is_array($data['plan'] ?? null) ? $data['plan'] : [],
+            'usage'        => is_array($data['usage'] ?? null) ? $data['usage'] : [],
         ]);
     }
 }

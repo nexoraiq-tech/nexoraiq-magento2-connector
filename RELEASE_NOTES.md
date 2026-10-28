@@ -1,6 +1,41 @@
 # NexorAIQ Magento 2 Connector — Release Notes
 
+## Version 1.0.1
+
+**Release Date:** October 28, 2026  
+**Module Name:** `NexorAIQ_Connector`  
+**Package:** `nexoraiq/connector`  
+**Type:** Maintenance & Performance Release  
+**Target Platforms:** Magento Open Source 2.4.4–2.4.9, Adobe Commerce 2.4.4–2.4.9, Mage-OS 2.4.x  
+**PHP Versions:** PHP 8.1, 8.2, 8.3, 8.4, 8.5  
+
+### Highlights in v1.0.1
+
+* **High-Performance Direct DB Stock Loading:**
+  * In `ProductRepositoryPlugin`: Replaced resource collection batch loading with a direct, optimized SQL query via `ResourceConnection` against the `cataloginventory_stock_item` table.
+  * Eliminates dependency injection adapter instantiation issues on large catalog collections, significantly reducing memory footprint and preventing crashes during bulk product lookups.
+  * Added robust fallbacks using `StockItemInterfaceFactory` and `StockRegistry` with defensive exception handling.
+
+* **On-Demand Manual Sync Override (`$force = true`):**
+  * Updated `CatalogAction::execute()` and `Controller/Adminhtml/Product/Sync.php` to accept a `$force` parameter.
+  * When a merchant clicks **Resync Product** from the Magento Admin product edit screen, the connector immediately triggers an outbound API sync, bypassing the 5-minute deduplication skip window.
+
+* **Stock-Aware Sync Deduplication:**
+  * Enhanced `SyncStatusManager::isRecentlySynced()` and `getRecentlySyncedProductIds()` with a `$requireStock = true` condition (`indexed_fields LIKE '%qty%' OR indexed_fields LIKE '%stock%'`).
+  * Prevents products with incomplete or pending stock data from being mistakenly skipped during subsequent reindex cycles.
+
+* **Admin Subscription Plan & Usage Interface Refinements:**
+  * Renamed the usage header in the General Settings plan card from `Usage this period` to **`Plan / Usage this period`**.
+  * Consolidated plan metrics by hiding the redundant static `Plan limits` tile grid in favor of unified visual progress meters.
+  * Added `'usage'` data mapping to `Controller/Adminhtml/System/PlanInfo` for accurate frontend telemetry reporting.
+
+* **Branding & Logging Consistency:**
+  * Standardized all logger channel outputs, admin controllers, and indexer messages to unified `NexorAIQ` naming.
+
+---
+
 ## Version 1.0.0 (GA)
+
 
 **Release Date:** October 28, 2026  
 **Module Name:** `NexorAIQ_Connector`  

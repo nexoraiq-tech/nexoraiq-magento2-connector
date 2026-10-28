@@ -58,6 +58,36 @@ $uid = 'nxq-plan-' . uniqid();
     .nxq-plan__limit { border: 1px solid #ecebf3; border-radius: 6px; padding: 6px 10px; background: #faf9fd; }
     .nxq-plan__limit-value { font-size: 15px; font-weight: 700; color: #1f1d2e; line-height: 1.3; }
     .nxq-plan__limit-label { font-size: 11px; color: #77758a; }
+    .nxq-plan__usage { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; margin-bottom: 6px; }
+    .nxq-plan__meter {
+        position: relative; border: 1px solid #ecebf3; border-radius: 6px; padding: 7px 10px 8px; background: #faf9fd; cursor: default;
+    }
+    .nxq-plan__meter:hover, .nxq-plan__meter:focus { border-color: #cfc5fb; outline: none; }
+    .nxq-plan__meter-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .nxq-plan__meter-label { font-size: 11px; color: #77758a; }
+    .nxq-plan__meter-value { font-size: 14px; font-weight: 700; color: #1f1d2e; white-space: nowrap; }
+    .nxq-plan__meter-value small { font-size: 11px; font-weight: 500; color: #8b89a0; }
+    .nxq-plan__meter-bar { height: 5px; margin-top: 6px; background: #ebe8f7; border-radius: 999px; overflow: hidden; }
+    .nxq-plan__meter-bar span { display: block; height: 100%; min-width: 3px; background: #6f4cf6; border-radius: 999px; }
+    .nxq-plan__meter.is-warn .nxq-plan__meter-bar span { background: #e69500; }
+    .nxq-plan__meter.is-full .nxq-plan__meter-bar span { background: #d23b30; }
+    .nxq-plan__tip {
+        position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translate(-50%, 4px); z-index: 20;
+        min-width: 190px; padding: 8px 10px; border-radius: 6px; background: #1f1d2e; color: #fff;
+        font-size: 11px; line-height: 1.5; box-shadow: 0 4px 14px rgba(20, 10, 60, .25);
+        opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .12s, transform .12s;
+    }
+    .nxq-plan__tip::after {
+        content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px;
+        border: 5px solid transparent; border-top-color: #1f1d2e;
+    }
+    .nxq-plan__meter:hover .nxq-plan__tip, .nxq-plan__meter:focus .nxq-plan__tip { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+    .nxq-plan__tip-title { font-weight: 700; margin-bottom: 3px; }
+    .nxq-plan__tip-row { display: flex; justify-content: space-between; gap: 14px; }
+    .nxq-plan__tip-row span:first-child { opacity: .7; }
+    .nxq-plan__reset { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #77758a; margin: 0 0 12px; }
+    .nxq-plan__reset strong { color: #33314a; font-weight: 600; }
+    .nxq-plan__limit[title] { cursor: default; }
     .nxq-plan__features { list-style: none; margin: 0 0 10px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px 14px; }
     .nxq-plan__features li { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #33314a; margin: 0; }
     .nxq-plan__features li::before {
@@ -105,6 +135,13 @@ require(['jquery'], function ($) {
         or: <?= json_encode(__('or')->render()) ?>,
         free: <?= json_encode(__('Free')->render()) ?>,
         limits: <?= json_encode(__('Plan limits')->render()) ?>,
+        usage: <?= json_encode(__('Plan / Usage this period')->render()) ?>,
+        used: <?= json_encode(__('Used')->render()) ?>,
+        limit: <?= json_encode(__('Limit')->render()) ?>,
+        remaining: <?= json_encode(__('Remaining')->render()) ?>,
+        unlimited: <?= json_encode(__('Unlimited')->render()) ?>,
+        resetsOn: <?= json_encode(__('Usage resets on')->render()) ?>,
+        periodFrom: <?= json_encode(__('period started')->render()) ?>,
         features: <?= json_encode(__('Included features')->render()) ?>,
         upgrade: <?= json_encode(__('Upgrade Plan')->render()) ?>,
         opening: <?= json_encode(__('Opening…')->render()) ?>,
@@ -124,7 +161,7 @@ require(['jquery'], function ($) {
         trialing: 'Free Trial', active: 'Active', past_due: 'Payment Due', unpaid: 'Unpaid',
         canceled: 'Canceled', cancelled: 'Canceled', expired: 'Expired', incomplete: 'Incomplete', paused: 'Paused'
     };
-    var limitLabels = { searches: 'Searches', products: 'Products', storeViews: 'Store Views', synonyms: 'Synonyms', rules: 'Rules' };
+    var limitLabels = { searches: 'Searches', products: 'Products', storeViews: 'Store Views', synonyms: 'Synonyms', rules: 'Rules', aiCredits: 'AI Credits' };
     var TRIAL_DAYS = 14;
 
     function el(tag, cls, text) {
@@ -148,6 +185,91 @@ require(['jquery'], function ($) {
         } catch (e) {
             return (currency ? currency + ' ' : '') + n.toLocaleString();
         }
+    }
+
+    // 1000000 -> "1M", 30000 -> "30K", 231 -> "231"
+    function compact(n) {
+        n = Number(n);
+        if (!isFinite(n)) { return '—'; }
+        try {
+            return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
+        } catch (e) {
+            var units = [[1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+            for (var i = 0; i < units.length; i++) {
+                if (Math.abs(n) >= units[i][0]) { return +(n / units[i][0]).toFixed(1) + units[i][1]; }
+            }
+            return String(n);
+        }
+    }
+
+    function full(n) {
+        n = Number(n);
+        return isFinite(n) ? n.toLocaleString('en-US') : '—';
+    }
+
+    function formatDateTime(value) {
+        var d = new Date(value);
+        if (isNaN(d.getTime())) { return ''; }
+        return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' +
+            d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    }
+
+    function formatDate(value) {
+        var d = new Date(value);
+        return isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function renderUsage(usage) {
+        if (!usage || typeof usage !== 'object') { return null; }
+        var keys = Object.keys(usage).filter(function (k) {
+            return usage[k] && typeof usage[k] === 'object' && usage[k].used !== undefined;
+        });
+        if (!keys.length) { return null; }
+
+        var wrap = el('div');
+        wrap.append(el('div', 'nxq-plan__section', t.usage));
+        var grid = el('div', 'nxq-plan__usage');
+        keys.forEach(function (k) {
+            var u = usage[k];
+            var used = Number(u.used) || 0;
+            var limit = Number(u.limit);
+            var hasLimit = isFinite(limit) && limit > 0;
+            var label = limitLabels[k] || humanize(k);
+            var pct = hasLimit ? Math.min(100, (used / limit) * 100) : 0;
+            var remaining = u.remaining !== undefined ? Number(u.remaining) : (hasLimit ? Math.max(0, limit - used) : null);
+
+            var meter = el('div', 'nxq-plan__meter').attr({ tabindex: 0, 'aria-label': label + ': ' + full(used) + ' / ' + (hasLimit ? full(limit) : t.unlimited) });
+            if (pct >= 100) { meter.addClass('is-full'); } else if (pct >= 80) { meter.addClass('is-warn'); }
+
+            var top = el('div', 'nxq-plan__meter-top');
+            top.append(el('span', 'nxq-plan__meter-label', label));
+            top.append(el('span', 'nxq-plan__meter-value', compact(used)).append(el('small', '', ' / ' + (hasLimit ? compact(limit) : '∞'))));
+            meter.append(top);
+            meter.append(el('div', 'nxq-plan__meter-bar').append($('<span>').css('width', pct + '%')));
+
+            var pctText = pct > 0 && pct < 0.01 ? '<0.01%' : (pct < 10 ? pct.toFixed(2) : pct.toFixed(1)) + '%';
+            var tip = el('div', 'nxq-plan__tip').attr('role', 'tooltip');
+            tip.append(el('div', 'nxq-plan__tip-title', label));
+            var row = function (a, b) { tip.append(el('div', 'nxq-plan__tip-row').append(el('span', '', a), el('span', '', b))); };
+            row(t.used, full(used) + (hasLimit ? ' (' + pctText + ')' : ''));
+            row(t.limit, hasLimit ? full(limit) : t.unlimited);
+            if (remaining !== null && isFinite(remaining)) { row(t.remaining, full(remaining)); }
+            meter.append(tip);
+            grid.append(meter);
+        });
+        wrap.append(grid);
+
+        var resetText = usage.resetsAt ? formatDateTime(usage.resetsAt) : '';
+        if (resetText) {
+            var reset = el('div', 'nxq-plan__reset').append($('<span aria-hidden="true">').text('↻'));
+            reset.append(el('span', '', t.resetsOn + ' ').append(el('strong', '', resetText)));
+            var startText = usage.periodStart ? formatDate(usage.periodStart) : '';
+            if (startText) { reset.append(el('span', '', '· ' + t.periodFrom + ' ' + startText)); }
+            wrap.append(reset);
+        } else {
+            grid.css('margin-bottom', '12px');
+        }
+        return wrap;
     }
 
     function badgeClass(status) {
@@ -233,6 +355,10 @@ require(['jquery'], function ($) {
 
         // Body: limits + features
         var body = el('div', 'nxq-plan__body');
+        var usageBlock = renderUsage(data.usage);
+        if (usageBlock) { body.append(usageBlock); }
+        // Plan limits section hidden for now
+        /*
         var limits = plan.limits && typeof plan.limits === 'object' ? plan.limits : {};
         var limitKeys = Object.keys(limits).filter(function (k) { return limits[k] !== null && typeof limits[k] !== 'object'; });
         if (limitKeys.length) {
@@ -241,12 +367,18 @@ require(['jquery'], function ($) {
             limitKeys.forEach(function (k) {
                 var v = limits[k];
                 var tile = el('div', 'nxq-plan__limit');
-                tile.append(el('div', 'nxq-plan__limit-value', typeof v === 'number' ? v.toLocaleString() : v));
+                if (typeof v === 'number') {
+                    tile.attr('title', full(v));
+                    tile.append(el('div', 'nxq-plan__limit-value', compact(v)));
+                } else {
+                    tile.append(el('div', 'nxq-plan__limit-value', v));
+                }
                 tile.append(el('div', 'nxq-plan__limit-label', limitLabels[k] || humanize(k)));
                 grid.append(tile);
             });
             body.append(grid);
         }
+        */
         var features = renderFeatures(plan.features);
         if (features) {
             body.append(el('div', 'nxq-plan__section', t.features));

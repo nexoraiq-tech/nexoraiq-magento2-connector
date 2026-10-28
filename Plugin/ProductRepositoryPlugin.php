@@ -21,6 +21,8 @@ class ProductRepositoryPlugin
         private readonly ReviewSummaryInterfaceFactory $reviewSummaryFactory,
         private readonly \Magento\Framework\ObjectManagerInterface $objectManager,
         private readonly LoggerInterface $logger,
+        private readonly ?\Magento\Framework\App\ResourceConnection $resourceConnection = null,
+        private readonly ?\Magento\CatalogInventory\Api\Data\StockItemInterfaceFactory $stockItemFactory = null
     ) {}
 
     /**
@@ -142,15 +144,24 @@ class ProductRepositoryPlugin
 
             $storeId = (int)$this->storeManager->getStore()->getId();
 
-            // 1. Batch Load Stock Items
+            // 1. Batch Load Stock Items via ResourceConnection (direct query to avoid DI adapter instantiation crash)
             $stockItemsMap = [];
             try {
-                $stockCollection = $this->objectManager->create(\Magento\CatalogInventory\Model\ResourceModel\Stock\Item\Collection::class);
-                $stockCollection->addFieldToFilter('product_id', ['in' => $productIds]);
-                foreach ($stockCollection as $item) {
-                    $stockItemsMap[$item->getProductId()] = $item;
+                $res = $this->resourceConnection ?? $this->objectManager->get(\Magento\Framework\App\ResourceConnection::class);
+                $conn = $res->getConnection();
+                $stockTable = $res->getTableName('cataloginventory_stock_item');
+                $select = $conn->select()
+                    ->from($stockTable, ['product_id', 'qty', 'is_in_stock'])
+                    ->where('product_id IN (?)', $productIds);
+                $rows = $conn->fetchAll($select);
+                foreach ($rows as $row) {
+                    $stockItemsMap[(int)$row['product_id']] = [
+                        'qty'         => (float)$row['qty'],
+                        'is_in_stock' => (bool)$row['is_in_stock'],
+                    ];
                 }
             } catch (\Throwable $e) {
+                $this->logger->warning('NexorAIQ ProductRepositoryPlugin batch stock query failed: ' . $e->getMessage());
             }
 
             // 2. Batch Load Review Summaries
@@ -186,8 +197,9 @@ class ProductRepositoryPlugin
             }
 
             // 4. Enrich products using preloaded maps
+            $itemFactory = $this->stockItemFactory ?? $this->objectManager->get(\Magento\CatalogInventory\Api\Data\StockItemInterfaceFactory::class);
             foreach ($products as $product) {
-                $productId = $product->getId();
+                $productId = (int)$product->getId();
                 $sku = $product->getSku();
 
                 $ext = $product->getExtensionAttributes();
@@ -197,16 +209,37 @@ class ProductRepositoryPlugin
                 }
 
                 // Set Stock Item
-                $stockItem = $stockItemsMap[$productId] ?? null;
-                if ($stockItem) {
-                    $ext->setStockItem($stockItem);
+                $stockData = $stockItemsMap[$productId] ?? null;
+                $stockItem = null;
+                if ($stockData !== null) {
+                    try {
+                        $stockItem = $itemFactory->create();
+                        $stockItem->setProductId($productId);
+                        $stockItem->setQty($stockData['qty']);
+                        $stockItem->setIsInStock($stockData['is_in_stock']);
+                        $ext->setStockItem($stockItem);
+                    } catch (\Throwable $e) {
+                    }
+                }
+
+                // Fallback to stock registry if batch collection didn't find the item
+                if (!$stockItem) {
+                    try {
+                        $stockItem = $this->stockRegistry->getStockItem($productId, $product->getStoreId());
+                        if ($stockItem && $stockItem->getItemId()) {
+                            $ext->setStockItem($stockItem);
+                        }
+                    } catch (\Throwable $e) {
+                    }
                 }
 
                 // Set Salable Qty
                 if (isset($salableQtyMap[$sku])) {
                     $this->setSalableQty($ext, $salableQtyMap[$sku]);
                 } else {
-                    if ($stockItem) {
+                    if ($stockData !== null) {
+                        $this->setSalableQty($ext, (float)$stockData['qty']);
+                    } elseif ($stockItem) {
                         $this->setSalableQty($ext, (float)$stockItem->getQty());
                     }
                 }

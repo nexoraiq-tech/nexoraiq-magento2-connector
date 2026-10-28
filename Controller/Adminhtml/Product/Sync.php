@@ -27,7 +27,7 @@ class Sync extends Action
     }
 
     /**
-     * Reindex / Sync a single product ID to NexoraIQ via Ajax
+     * Reindex / Sync a single product ID to NexorAIQ via Ajax
      */
     public function execute(): Json
     {
@@ -41,17 +41,17 @@ class Sync extends Action
             ]);
         }
 
-        $this->logger->info(sprintf('NexoraIQ Admin: manual sync requested for product_id=%d', $productId));
+        $this->logger->info(sprintf('NexorAIQ Admin: manual sync requested for product_id=%d', $productId));
 
         try {
-            $this->catalogAction->execute([$productId]);
-            $this->logger->info(sprintf('NexoraIQ Admin: manual sync completed for product_id=%d', $productId));
+            $this->catalogAction->execute([$productId], true);
+            $this->logger->info(sprintf('NexorAIQ Admin: manual sync completed for product_id=%d', $productId));
             return $result->setData([
                 'success' => true,
                 'message' => __('Product synced successfully to NexorAIQ.')
             ]);
         } catch (\Throwable $e) {
-            $this->logger->error(sprintf('NexoraIQ Admin: manual sync failed for product_id=%d: %s', $productId, $e->getMessage()));
+            $this->logger->error(sprintf('NexorAIQ Admin: manual sync failed for product_id=%d: %s', $productId, $e->getMessage()));
             return $result->setData([
                 'success' => false,
                 'message' => __('Sync failed: %1', $e->getMessage())
