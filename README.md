@@ -333,9 +333,10 @@ Before deploying to production, verify the following in a staging Magento instal
 
 Please report vulnerabilities privately; see [SECURITY.md](SECURITY.md). Do not publish credentials, customer data, or exploitable details in public issues. Review endpoint authorization, request validation, rate limiting, and log redaction before production deployment.
 
-## Changelog
+## Changelog & Release Notes
 
-See [CHANGELOG.md](CHANGELOG.md) for documented release notes. Confirm release contents against the tagged source/package before publishing.
+See [CHANGELOG.md](CHANGELOG.md) and [RELEASE_NOTES.md](RELEASE_NOTES.md) for full documented release notes and version history. Confirm release contents against the tagged source/package before publishing.
+
 
 ## License
 
