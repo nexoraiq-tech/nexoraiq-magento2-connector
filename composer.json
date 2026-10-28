@@ -1,8 +1,7 @@
 {
-   "name": "nexoraiq/connector",
+    "name": "nexoraiq/connector",
     "description": "NexorAIQ | AI Commerce Search Connector for Magento 2 (Hyvä and Luma / Blank / other themes)",
     "type": "magento2-module",
-    "version": "1.0.0",
     "license": "proprietary",
     "autoload": {
         "files": [
