@@ -1,5 +1,21 @@
 # NexorAIQ Magento 2 Connector — Release Notes
 
+## Version 1.0.2
+
+**Release Date:** October 29, 2026  
+**Module Name:** `NexorAIQ_Connector`  
+**Package:** `nexoraiq/connector`  
+**Type:** Security & Marketplace readiness release  
+**Target Platforms:** Magento Open Source and Adobe Commerce 2.4.6 – 2.4.9 (Mage-OS releases built on them)  
+**PHP Versions:** as supported by the Magento release: 8.1 – 8.2 (2.4.6), 8.2 – 8.3 (2.4.7), 8.3 – 8.4 (2.4.8), 8.5 (2.4.9)  
+**Themes:** Hyvä 1.3+, Luma, Blank and themes that inherit from them
+
+**Upgrade:** `composer update nexoraiq/connector`, then `bin/magento setup:upgrade`, `bin/magento setup:di:compile` (production mode) and `bin/magento cache:flush`. No configuration changes are needed. Merchants on earlier versions should regenerate the NexorAIQ integration's access token (System > Integrations > Reauthorize), because earlier versions could reveal it through the ping endpoint.
+
+See CHANGELOG.md for the full list of changes.
+
+---
+
 ## Version 1.0.1
 
 **Release Date:** October 28, 2026  

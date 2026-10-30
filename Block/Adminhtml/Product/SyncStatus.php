@@ -9,6 +9,7 @@ use Magento\Framework\Registry;
 use NexorAIQ\Connector\Helper\Data as HelperData;
 use NexorAIQ\Connector\Model\SyncStatusManager;
 use Magento\Store\Model\StoreManagerInterface;
+use Magento\Catalog\Helper\Image as ImageHelper;
 use Psr\Log\LoggerInterface;
 
 class SyncStatus extends Template
@@ -22,6 +23,7 @@ class SyncStatus extends Template
         private readonly SyncStatusManager $syncStatusManager,
         private readonly StoreManagerInterface $storeManager,
         private readonly LoggerInterface $logger,
+        private readonly ImageHelper $imageHelper,
         array $data = []
     ) {
         parent::__construct($context, $data);
@@ -30,6 +32,22 @@ class SyncStatus extends Template
     public function getProduct()
     {
         return $this->registry->registry('current_product');
+    }
+
+    /**
+     * Thumbnail URL of the current product, or '' when it has none.
+     */
+    public function getImageUrl(): string
+    {
+        $product = $this->getProduct();
+        if (!$product) {
+            return '';
+        }
+        try {
+            return (string)$this->imageHelper->init($product, 'product_thumbnail_image')->getUrl();
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 
     public function getHelper(): HelperData

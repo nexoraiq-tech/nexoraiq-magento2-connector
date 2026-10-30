@@ -1,5 +1,5 @@
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  *
  * Header search (search/form.phtml): NexorAIQ autocomplete dropdown or full screen overlay, in place of
  * Magento's quickSearch widget. Markup comes from the <script type="text/x-magento-template"> blocks of
@@ -131,6 +131,8 @@ define([
                 loading: false,
                 searched: false,
                 products: [],
+                // Search term the shown overlay products were loaded for ('' = trending products).
+                productsTerm: '',
                 total: 0,
                 suggestions: [],
                 categories: [],
@@ -174,8 +176,18 @@ define([
             return config.resultUrl + '?' + params;
         }
 
+        // query / source of the shown products for CLICK, ADD_TO_CART and CONVERSION: the overlay's trending
+        // products (empty search) send query "trending" + source "trending", a typed search its keyword + "".
+        function analyticsContext() {
+            var term = isOverlay() ? state.productsTerm : state.query.trim();
+
+            return analytics.context(term, term ? '' : 'trending');
+        }
+
         function trackClick(hit) {
-            analytics.click(config.trackEventUrl, hit, state.query);
+            var ctx = analyticsContext();
+
+            analytics.click(config.trackEventUrl, hit, ctx.query, ctx.source);
         }
 
         function abort() {
@@ -382,6 +394,7 @@ define([
 
         function showOverlay(result) {
             state.products = result.products;
+            state.productsTerm = String(result.term || '').trim();
             state.total = result.total || result.products.length;
             state.suggestions = result.suggestions;
             state.categories = result.categories;
@@ -462,6 +475,7 @@ define([
                     return Promise.reject(new Error('overlay query failed'));
                 }
                 result = {
+                    term: term,
                     products: (Array.isArray(data.products) ? data.products : []).slice(0, productsLimit()),
                     total: data.total || 0,
                     suggestions: mapSuggestions(data, suggestion ? suggestion.limit : 0).map(function (item) {
@@ -510,12 +524,14 @@ define([
         }
 
         function addToCart(hit) {
+            var ctx = analyticsContext();
+
             if (state.cartState[hit.id] === 'adding') {
                 return;
             }
             state.cartState[hit.id] = 'adding';
             drawProducts();
-            cart.add(hit, 1, state.query).then(function (outcome) {
+            cart.add(hit, 1, ctx.query, ctx.source).then(function (outcome) {
                 state.cartState[hit.id] = outcome === 'added' ? 'added' : '';
 
                 if (outcome === 'added') {

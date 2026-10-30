@@ -22,7 +22,8 @@ class ProductSaveAfter implements ObserverInterface
         private readonly Data $helper,
         private readonly SyncQueueManager $syncQueueManager,
         private readonly LoggerInterface $logger
-    ) {}
+    ) {
+    }
 
     public function execute(Observer $observer): void
     {
@@ -31,7 +32,9 @@ class ProductSaveAfter implements ObserverInterface
         }
 
         $product = $observer->getEvent()->getProduct();
-        if (!$product || !$product->getId()) return;
+        if (!$product || !$product->getId()) {
+            return;
+        }
 
         $productId = (int) $product->getId();
         $this->logger->info(sprintf('catalog_product_save_after: product_id=%d enqueued', $productId));

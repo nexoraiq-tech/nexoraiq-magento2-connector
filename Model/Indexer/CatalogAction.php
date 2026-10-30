@@ -32,7 +32,8 @@ class CatalogAction
         private readonly SyncQueueManager $syncQueueManager,
         private readonly SyncBlockManager $syncBlockManager,
         private readonly LoggerInterface $logger
-    ) {}
+    ) {
+    }
 
     /**
      * Reindex specific product IDs (from mview changelog or direct list).
@@ -46,6 +47,9 @@ class CatalogAction
      */
     public function execute(array $ids, bool $force = false): array
     {
+        // Mview (Update by Schedule) passes IDs as strings; the code below expects ints.
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+
         if (!$this->helper->isEnabled()) {
             return [];
         }

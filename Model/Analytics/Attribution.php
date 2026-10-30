@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -16,7 +16,8 @@ use Magento\Quote\Model\Quote\Item as QuoteItem;
  * the product id of the clicked hit.
  *
  * - The storefront (nexoraiqAnalytics.remember()) keeps the last clicked / added search hits in the
- *   "nexoraiq_attribution" cookie: {"<sku>": {"q": "<query>", "p": "<productId>"}}.
+ *   "nexoraiq_attribution" cookie: {"<sku>": {"q": "<query>", "p": "<productId>", "s": "<source>"}}, where
+ *   source is "trending" for the overlay's trending products (query "trending") and absent for typed searches.
  * - When such a product is added to the cart, the attribution is stored in the quote item's buy request, so
  *   later quantity updates of that cart line keep it.
  */
@@ -34,7 +35,7 @@ class Attribution
     /**
      * Attribution the browser recorded for this SKU.
      *
-     * @return array{query: string, productId: string}|null
+     * @return array{query: string, productId: string, source: string}|null
      */
     public function fromCookie(string $sku): ?array
     {
@@ -55,13 +56,14 @@ class Attribution
         return [
             'query'     => mb_substr(trim($entry['q']), 0, 255),
             'productId' => is_string($entry['p'] ?? null) ? $entry['p'] : '',
+            'source'    => is_string($entry['s'] ?? null) ? $entry['s'] : '',
         ];
     }
 
     /**
      * Attribution stored on a cart item.
      *
-     * @return array{query: string, productId: string}|null
+     * @return array{query: string, productId: string, source: string}|null
      */
     public function fromQuoteItem(QuoteItem $item): ?array
     {
@@ -77,12 +79,12 @@ class Attribution
         $entry = is_array($buyRequest) ? ($buyRequest[self::BUY_REQUEST_KEY] ?? null) : null;
 
         return is_array($entry) && !empty($entry['query'])
-            ? ['query' => (string)$entry['query'], 'productId' => (string)($entry['productId'] ?? '')]
+            ? $this->normalize($entry)
             : null;
     }
 
     /**
-     * @param array{query: string, productId: string} $attribution
+     * @param array{query: string, productId: string, source?: string} $attribution
      */
     public function saveOnQuoteItem(QuoteItem $item, array $attribution): void
     {
@@ -98,7 +100,21 @@ class Attribution
         if (!is_array($buyRequest)) {
             return;
         }
-        $buyRequest[self::BUY_REQUEST_KEY] = $attribution;
+        $buyRequest[self::BUY_REQUEST_KEY] = $this->normalize($attribution);
         $option->setValue($this->json->serialize($buyRequest));
+    }
+
+    /**
+     * Attribution as kept on cart / order items (buy request "nexoraiq_search").
+     *
+     * @return array{query: string, productId: string, source: string}
+     */
+    public function normalize(array $entry): array
+    {
+        return [
+            'query'     => (string)($entry['query'] ?? ''),
+            'productId' => (string)($entry['productId'] ?? ''),
+            'source'    => is_string($entry['source'] ?? null) ? $entry['source'] : '',
+        ];
     }
 }

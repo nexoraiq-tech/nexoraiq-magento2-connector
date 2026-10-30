@@ -1,0 +1,8 @@
+Copyright (c) NexorAIQ. All rights reserved.
+
+NexorAIQ Connector for Magento 2 (package nexoraiq/connector) is proprietary software.
+Use of this software requires an active NexorAIQ account and is subject to the NexorAIQ
+terms of service. You may not copy, modify, redistribute or sublicense this software
+except as permitted by those terms.
+
+This software is provided "as is", without warranty of any kind.

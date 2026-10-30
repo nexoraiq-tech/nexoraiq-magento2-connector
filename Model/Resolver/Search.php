@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright © 2025 NexoraIQ. All rights reserved.
+ * Copyright © 2025 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -12,7 +12,8 @@ use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use NexorAIQ\Connector\Helper\Data as HelperData;
-use NexorAIQ\Connector\Model\Api\RequestContext;
+use NexorAIQ\Connector\Model\Api\ApiException;
+use NexorAIQ\Connector\Model\Api\Client;
 use Psr\Log\LoggerInterface;
 
 class Search implements ResolverInterface
@@ -20,12 +21,12 @@ class Search implements ResolverInterface
     /**
      * @param HelperData $helper
      * @param LoggerInterface $logger
-     * @param RequestContext $requestContext
+     * @param Client $client
      */
     public function __construct(
         private readonly HelperData $helper,
         private readonly LoggerInterface $logger,
-        private readonly RequestContext $requestContext
+        private readonly Client $client
     ) {
     }
 
@@ -87,46 +88,10 @@ class Search implements ResolverInterface
                 $params['searchType'] = $searchType;
             }
 
-            // Build request URL
-            $apiUrl = $this->helper->getApiUrl($storeId);
-            $searchKey = $this->helper->getSearchKey($storeId);
-
-            $url = $apiUrl . '/search?' . http_build_query($params);
-            $ch = curl_init($url);
-
-            $headers = [
-                'Content-Type: application/json',
-                'x-api-key: ' . $searchKey
-            ];
-            $headers = array_merge($headers, $this->requestContext->getCurlHeaderLines());
-
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_HTTPHEADER     => $headers,
-                CURLOPT_CONNECTTIMEOUT => 3,
-                CURLOPT_TIMEOUT        => 5,
-                CURLOPT_SSL_VERIFYPEER => $this->helper->verifySsl($storeId),
-            ]);
-
-            $res = curl_exec($ch);
-            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-
-            if ($code < 200 || $code >= 300 || !$res) {
-                $this->logger->warning('NexoraIQ search API proxy failed', ['code' => $code, 'url' => $url]);
-                return [
-                    'hits' => [],
-                    'total' => 0,
-                    'limit' => $limit,
-                    'currentPage' => $page,
-                    'totalPage' => 0,
-                    'searchTimeMs' => 0,
-                    'aggregations' => null
-                ];
-            }
-
-            $data = json_decode($res, true);
-            if (!is_array($data)) {
+            try {
+                $data = $this->client->get('/search', $params, $storeId);
+            } catch (ApiException $e) {
+                // Client already logged the failure.
                 return [
                     'hits' => [],
                     'total' => 0,

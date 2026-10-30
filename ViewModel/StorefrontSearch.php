@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -160,11 +160,7 @@ class StorefrontSearch implements ArgumentInterface
         if (!$this->isActive()) {
             return '';
         }
-        $parts = parse_url($this->helper->getApiUrl($this->getStoreId()));
-        if (empty($parts['scheme']) || empty($parts['host'])) {
-            return '';
-        }
-        return $parts['scheme'] . '://' . $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
+        return $this->helper->getApiOrigin($this->getStoreId());
     }
 
     /**

@@ -1,5 +1,6 @@
 <?php
 /** @var \NexorAIQ\Connector\Block\Adminhtml\Product\SyncStatus $block */
+/** @var \Magento\Framework\Escaper $escaper */
 
 $product = $block->getProduct();
 if (!$product) {
@@ -13,8 +14,7 @@ $storeStatuses = $block->getStoreStatuses();
 ?>
 
 <?php
-$imageHelper = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Catalog\Helper\Image::class);
-$imageUrl = $imageHelper->init($product, 'product_thumbnail_image')->getUrl();
+$imageUrl = $block->getImageUrl();
 ?>
 
 <?php
@@ -40,34 +40,34 @@ if (!$isExtensionEnabled) {
         <div class="nexoraiq-summary-info">
             <?php if ($imageUrl): ?>
                 <div class="nexoraiq-thumb-container">
-                    <img src="<?= $block->escapeUrl($imageUrl) ?>" alt="<?= $block->escapeHtml($product->getName()) ?>" class="nexoraiq-product-thumb" />
+                    <img src="<?= $escaper->escapeUrl($imageUrl) ?>" alt="<?= $escaper->escapeHtml($product->getName()) ?>" class="nexoraiq-product-thumb" />
                 </div>
             <?php endif; ?>
             <div class="nexoraiq-summary-row">
-                <span class="nexoraiq-label"><?= __('Product ID:') ?></span>
-                <span class="nexoraiq-value"><?= $productId ?></span>
+                <span class="nexoraiq-label"><?= $escaper->escapeHtml(__('Product ID:')) ?></span>
+                <span class="nexoraiq-value"><?= (int)$productId ?></span>
             </div>
             <div class="nexoraiq-summary-row">
-                <span class="nexoraiq-label"><?= __('Product SKU:') ?></span>
-                <span class="nexoraiq-value"><?= $block->escapeHtml($sku) ?></span>
+                <span class="nexoraiq-label"><?= $escaper->escapeHtml(__('Product SKU:')) ?></span>
+                <span class="nexoraiq-value"><?= $escaper->escapeHtml($sku) ?></span>
             </div>
             <div class="nexoraiq-summary-row">
-                <span class="nexoraiq-label"><?= __('Product Status:') ?></span>
+                <span class="nexoraiq-label"><?= $escaper->escapeHtml(__('Product Status:')) ?></span>
                 <span class="nexoraiq-value">
                     <?php if ($product->getStatus() == 1): ?>
-                        <span class="nexoraiq-status-tag tag-success"><?= __('Enabled') ?></span>
+                        <span class="nexoraiq-status-tag tag-success"><?= $escaper->escapeHtml(__('Enabled')) ?></span>
                     <?php else: ?>
-                        <span class="nexoraiq-status-tag tag-warning"><?= __('Disabled') ?></span>
+                        <span class="nexoraiq-status-tag tag-warning"><?= $escaper->escapeHtml(__('Disabled')) ?></span>
                     <?php endif; ?>
                 </span>
             </div>
             <div class="nexoraiq-summary-row">
-                <span class="nexoraiq-label"><?= __('Extension Status:') ?></span>
+                <span class="nexoraiq-label"><?= $escaper->escapeHtml(__('Extension Status:')) ?></span>
                 <span class="nexoraiq-value">
                     <?php if ($isExtensionEnabled && $hasConnectionKey): ?>
-                        <span class="nexoraiq-status-tag tag-success"><?= __('Enabled') ?></span>
+                        <span class="nexoraiq-status-tag tag-success"><?= $escaper->escapeHtml(__('Enabled')) ?></span>
                     <?php else: ?>
-                        <span class="nexoraiq-status-tag tag-danger"><?= __('Disabled') ?></span>
+                        <span class="nexoraiq-status-tag tag-danger"><?= $escaper->escapeHtml(__('Disabled')) ?></span>
                     <?php endif; ?>
                 </span>
             </div>
@@ -76,12 +76,12 @@ if (!$isExtensionEnabled) {
         <div class="nexoraiq-summary-action">
             <?php if ($isSyncEnabled): ?>
                 <button id="nexoraiq-sync-now-btn" class="action-secondary nexoraiq-btn-primary" type="button">
-                    <span class="btn-text"><?= __('Sync Now to NexorAIQ') ?></span>
+                    <span class="btn-text"><?= $escaper->escapeHtml(__('Sync Now to NexorAIQ')) ?></span>
                     <span class="btn-spinner" style="display: none;"></span>
                 </button>
             <?php else: ?>
-                <button id="nexoraiq-sync-now-btn" class="action-secondary nexoraiq-btn-primary nexoraiq-btn-disabled" type="button" disabled title="<?= $block->escapeHtmlAttr($disabledReason) ?>">
-                    <span class="btn-text"><?= __('Sync Now to NexorAIQ') ?></span>
+                <button id="nexoraiq-sync-now-btn" class="action-secondary nexoraiq-btn-primary nexoraiq-btn-disabled" type="button" disabled title="<?= $escaper->escapeHtmlAttr($disabledReason) ?>">
+                    <span class="btn-text"><?= $escaper->escapeHtml(__('Sync Now to NexorAIQ')) ?></span>
                 </button>
             <?php endif; ?>
         </div>
@@ -89,28 +89,28 @@ if (!$isExtensionEnabled) {
 
     <!-- Active Store Views Status Listing -->
     <div class="nexoraiq-stores-list">
-        <h3 class="nexoraiq-section-title"><?= __('Store View Index Statuses') ?></h3>
+        <h3 class="nexoraiq-section-title"><?= $escaper->escapeHtml(__('Store View Index Statuses')) ?></h3>
         
         <?php if (!empty($storeStatuses)): ?>
             <div class="nexoraiq-table-responsive">
                 <table class="nexoraiq-table">
                     <thead>
                         <tr>
-                            <th class="th-store"><?= __('Store View') ?></th>
-                            <th class="th-code"><?= __('Code') ?></th>
-                            <th class="th-status"><?= __('Index Sync Status') ?></th>
-                            <th class="th-date"><?= __('Last Synced At') ?></th>
-                            <th class="th-fields"><?= __('Indexed Fields') ?></th>
+                            <th class="th-store"><?= $escaper->escapeHtml(__('Store View')) ?></th>
+                            <th class="th-code"><?= $escaper->escapeHtml(__('Code')) ?></th>
+                            <th class="th-status"><?= $escaper->escapeHtml(__('Index Sync Status')) ?></th>
+                            <th class="th-date"><?= $escaper->escapeHtml(__('Last Synced At')) ?></th>
+                            <th class="th-fields"><?= $escaper->escapeHtml(__('Indexed Fields')) ?></th>
                         </tr>
                     </thead>
                     <tbody id="nexoraiq-stores-status-tbody">
                         <?php foreach ($storeStatuses as $status): ?>
                             <tr class="store-status-row">
                                 <td class="store-name-col">
-                                    <strong><?= $block->escapeHtml($status['store_name']) ?></strong>
+                                    <strong><?= $escaper->escapeHtml($status['store_name']) ?></strong>
                                 </td>
                                 <td class="store-code-col">
-                                    <code class="store-code-badge"><?= $status['store_code'] ?></code>
+                                    <code class="store-code-badge"><?= $escaper->escapeHtml($status['store_code']) ?></code>
                                 </td>
                                 <td class="store-status-col">
                                     <?php if ($status['is_synced']): ?>
@@ -118,17 +118,17 @@ if (!$isExtensionEnabled) {
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                                 <polyline points="20 6 9 17 4 12"></polyline>
                                             </svg>
-                                            <?= __('Synced & Active') ?>
+                                            <?= $escaper->escapeHtml(__('Synced & Active')) ?>
                                         </span>
                                     <?php else: ?>
                                         <span class="nexoraiq-badge-status badge-pending">
-                                            <?= __('Not Synced / Pending') ?>
+                                            <?= $escaper->escapeHtml(__('Not Synced / Pending')) ?>
                                         </span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="store-date-col">
                                     <?php if ($status['is_synced'] && !empty($status['last_synced_at'])): ?>
-                                        <span class="sync-time-badge"><?= $status['last_synced_at'] ?></span>
+                                        <span class="sync-time-badge"><?= $escaper->escapeHtml($status['last_synced_at']) ?></span>
                                     <?php else: ?>
                                         <span class="fields-placeholder">-</span>
                                     <?php endif; ?>
@@ -144,17 +144,17 @@ if (!$isExtensionEnabled) {
                                         ?>
                                         <div class="fields-list">
                                             <?php foreach ($visibleFields as $f): ?>
-                                                <span class="field-tag"><?= $block->escapeHtml($f) ?></span>
+                                                <span class="field-tag"><?= $escaper->escapeHtml($f) ?></span>
                                             <?php endforeach; ?>
                                             
                                             <?php if ($moreCount > 0): ?>
                                                 <span class="fields-extra" style="display: none;">
                                                     <?php foreach ($hiddenFields as $f): ?>
-                                                        <span class="field-tag"><?= $block->escapeHtml($f) ?></span>
+                                                        <span class="field-tag"><?= $escaper->escapeHtml($f) ?></span>
                                                     <?php endforeach; ?>
                                                 </span>
-                                                <button type="button" class="field-toggle-btn" data-more-count="<?= $moreCount ?>" onclick="toggleFields(this)">
-                                                    +<?= $moreCount ?> <?= __('more') ?>
+                                                <button type="button" class="field-toggle-btn" data-more-count="<?= (int)$moreCount ?>" onclick="toggleFields(this)">
+                                                    +<?= (int)$moreCount ?> <?= $escaper->escapeHtml(__('more')) ?>
                                                 </button>
                                             <?php endif; ?>
                                         </div>
@@ -177,9 +177,9 @@ if (!$isExtensionEnabled) {
                     </svg>
                 </div>
                 <div class="empty-state-content">
-                    <h4 class="empty-state-title warning-title"><?= __('NexorAIQ Extension Disabled') ?></h4>
+                    <h4 class="empty-state-title warning-title"><?= $escaper->escapeHtml(__('NexorAIQ Extension Disabled')) ?></h4>
                     <p class="empty-state-desc">
-                        <?= __('The NexorAIQ extension is currently disabled in Stores > Configuration > NexorAIQ | AI Commerce Search. Set "Enable Extension" to "Yes" and configure your Connection Key to enable indexing.') ?>
+                        <?= $escaper->escapeHtml(__('The NexorAIQ extension is currently disabled in Stores > Configuration > NexorAIQ | AI Commerce Search. Set "Enable Extension" to "Yes" and configure your Connection Key to enable indexing.')) ?>
                     </p>
                 </div>
             </div>
@@ -193,9 +193,9 @@ if (!$isExtensionEnabled) {
                     </svg>
                 </div>
                 <div class="empty-state-content">
-                    <h4 class="empty-state-title warning-title"><?= __('Connection Key Missing') ?></h4>
+                    <h4 class="empty-state-title warning-title"><?= $escaper->escapeHtml(__('Connection Key Missing')) ?></h4>
                     <p class="empty-state-desc">
-                        <?= __('Your NexorAIQ Connection Key is not configured. Paste your Connection Key in Stores > Configuration > NexorAIQ | AI Commerce Search to enable product indexing.') ?>
+                        <?= $escaper->escapeHtml(__('Your NexorAIQ Connection Key is not configured. Paste your Connection Key in Stores > Configuration > NexorAIQ | AI Commerce Search to enable product indexing.')) ?>
                     </p>
                 </div>
             </div>
@@ -209,9 +209,9 @@ if (!$isExtensionEnabled) {
                     </svg>
                 </div>
                 <div class="empty-state-content">
-                    <h4 class="empty-state-title"><?= __('No Active Store Views Enabled') ?></h4>
+                    <h4 class="empty-state-title"><?= $escaper->escapeHtml(__('No Active Store Views Enabled')) ?></h4>
                     <p class="empty-state-desc">
-                        <?= __('Activate store views in your NexorAIQ Dashboard Integration Center to enable indexing and product synchronization.') ?>
+                        <?= $escaper->escapeHtml(__('Activate store views in your NexorAIQ Dashboard Integration Center to enable indexing and product synchronization.')) ?>
                     </p>
                 </div>
             </div>
@@ -572,18 +572,18 @@ if (!$isExtensionEnabled) {
         if (!extra) return;
         if (extra.style.display === 'none' || extra.style.display === '') {
             extra.style.display = 'inline-flex';
-            btn.innerText = '<?= __('Show less') ?>';
+            btn.innerText = '<?= $escaper->escapeJs(__('Show less')) ?>';
             btn.classList.add('expanded');
         } else {
             extra.style.display = 'none';
-            btn.innerText = '+' + btn.getAttribute('data-more-count') + ' <?= __('more') ?>';
+            btn.innerText = '+' + btn.getAttribute('data-more-count') + ' <?= $escaper->escapeJs(__('more')) ?>';
             btn.classList.remove('expanded');
         }
     }
 
     require(['jquery'], function ($) {
-        const syncUrl = '<?= $block->getSyncUrl() ?>';
-        const productId = '<?= $productId ?>';
+        const syncUrl = '<?= $escaper->escapeJs($block->getSyncUrl()) ?>';
+        const productId = '<?= (int)$productId ?>';
 
         $('#nexoraiq-sync-now-btn').click(function () {
             const btn = $(this);
@@ -591,7 +591,7 @@ if (!$isExtensionEnabled) {
             const spinner = btn.find('.btn-spinner');
 
             btn.prop('disabled', true);
-            text.text('<?= __('Syncing product...') ?>');
+            text.text('<?= $escaper->escapeJs(__('Syncing product...')) ?>');
             spinner.show();
 
             $.ajax({
@@ -604,21 +604,21 @@ if (!$isExtensionEnabled) {
                 dataType: 'json',
                 success: function (response) {
                     if (response && response.success) {
-                        text.text('<?= __('Success! Reloading...') ?>');
+                        text.text('<?= $escaper->escapeJs(__('Success! Reloading...')) ?>');
                         setTimeout(function () {
                             window.location.reload();
                         }, 800);
                     } else {
-                        alert(response.message || '<?= __('Sync failed. Please check system.log') ?>');
+                        alert(response.message || '<?= $escaper->escapeJs(__('Sync failed. Please check system.log')) ?>');
                         btn.prop('disabled', false);
-                        text.text('<?= __('Sync Now to NexorAIQ') ?>');
+                        text.text('<?= $escaper->escapeJs(__('Sync Now to NexorAIQ')) ?>');
                         spinner.hide();
                     }
                 },
                 error: function (xhr, status, error) {
-                    alert('<?= __('An error occurred while calling the sync endpoint.') ?> (' + error + ')');
+                    alert('<?= $escaper->escapeJs(__('An error occurred while calling the sync endpoint.')) ?> (' + error + ')');
                     btn.prop('disabled', false);
-                    text.text('<?= __('Sync Now to NexorAIQ') ?>');
+                    text.text('<?= $escaper->escapeJs(__('Sync Now to NexorAIQ')) ?>');
                     spinner.hide();
                 }
             });

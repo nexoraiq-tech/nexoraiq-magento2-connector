@@ -30,7 +30,7 @@
 
 The **NexorAIQ Connector** (`NexorAIQ_Connector`) is the official Magento 2 extension for integrating [NexorAIQ](https://www.nexoraiq.tech) AI-powered search, autocomplete, product discovery, and shopper telemetry.
 
-It provides out-of-the-box support for **Hyvä Themes**, standard **Luma / Blank** themes, and **Headless** (PWA, React, Next.js) storefront architectures with automatic theme detection.
+It ships storefront search for **Hyvä** and for **Luma / Blank-based** themes (selected automatically per store view), and GraphQL / REST search endpoints that headless storefronts can call.
 
 ---
 
@@ -44,10 +44,10 @@ It provides out-of-the-box support for **Hyvä Themes**, standard **Luma / Blank
 - **Unified Theme Compatibility**:
   - **Hyvä Theme**: Native Alpine.js templates and Tailwind CSS styling.
   - **Luma & Blank Themes**: RequireJS and responsive CSS.
-  - **Headless / PWA**: Secure GraphQL & REST search proxies.
+  - **Headless storefronts**: GraphQL and REST search endpoints (no ready-made PWA Studio components).
 - **Real-Time Catalog Sync**: Hooks into product save/delete events to instantly sync catalog changes to NexorAIQ.
 - **Multi-Source Inventory (MSI) & Reservations**: Captures stock changes, warehouse inventory updates, and checkout stock reservations in real-time.
-- **Headless Search Proxy**: All client-side search and telemetry requests are proxied securely through Magento, protecting your private API keys.
+- **Key separation**: The private Connection Key stays on the server (encrypted in Magento config). The browser only receives the read-only Public Search Key, which it uses to query the NexorAIQ search API directly; analytics events go through Magento.
 - **Shopper Telemetry & Analytics**: Captures search query interactions, product clicks, cart adds, and order conversions to continuously train search relevance.
 - **Admin Sync Status**: Displays real-time sync status badges per store view on the product edit page, with on-demand manual sync capability.
 - **Categorized Logging**: Isolated logging per subsystem (`var/log/NexoraIQ/`) for easy troubleshooting.
@@ -56,16 +56,19 @@ It provides out-of-the-box support for **Hyvä Themes**, standard **Luma / Blank
 
 ## Requirements & Compatibility
 
-The NexorAIQ Connector targets the **Magento Open Source, Adobe Commerce, and Mage-OS 2.4.x** release family, including **Magento / Adobe Commerce 2.4.9**.
+| Magento Open Source / Adobe Commerce | PHP (per Adobe system requirements) |
+| --- | --- |
+| **2.4.9** | 8.5 (8.4 for upgrade scenarios) |
+| **2.4.8** | 8.3, 8.4 |
+| **2.4.7** | 8.2, 8.3 |
+| **2.4.6** | 8.1, 8.2 |
 
-| Platform version | PHP compatibility | Guidance |
-| --- | --- | --- |
-| **Magento / Adobe Commerce 2.4.9** | **PHP 8.5**; PHP 8.4 is available for upgrade scenarios | Use PHP 8.5 for a production deployment on 2.4.9. Adobe's current guidance does not recommend PHP 8.4 for production on this release. |
-| **Magento / Adobe Commerce 2.4.8** | PHP 8.3 and 8.4, depending on the exact patch release | Confirm the patch-level system requirements before deployment. |
-| **Earlier Magento 2.4.x releases** | PHP version varies by release (including PHP 8.1–8.3 on applicable versions) | Match the PHP version to the exact Magento patch release; do not assume every PHP version works with every 2.4.x release. |
+- The module requires PHP 8.1 or later and `magento/framework` 103.0.6 or later (Magento 2.4.6).
+- **Themes**: Hyvä (Hyvä Theme 1.3 or later) and Luma / Blank or themes that inherit from them. Other frontends (e.g. PWA Studio, Breeze, custom headless) need their own integration using the GraphQL / REST endpoints.
+- **Optional modules**: Multi-Source Inventory (salable quantity, reservation-based stock sync), Magento_GraphQl / Magento_StoreGraphQl (GraphQL endpoints), Magento_Csp (CSP allow-list for `api.nexoraiq.tech`) and Magento_Review (ratings). The connector works without them.
+- **NexorAIQ account**: An active account with a Connection Key and a Public Search Key.
 
-- **NexorAIQ Account**: Active account with API credentials.
-- **Release validation**: Run the connector's staging checklist against your exact Magento patch and PHP runtime before production.
+**How compatibility was verified for this release:** installed and tested on Mage-OS 3.5 (Magento 2.4.9 code base) with PHP 8.3 and Hyvä 1.5; PHP 8.1–8.5 syntax compatibility checked with PHPCompatibility; every Magento class the module uses was confirmed to exist in Magento 2.4.6. Test on your exact Magento patch release and PHP version before production.
 
 See [Adobe Commerce system requirements](https://experienceleague.adobe.com/en/docs/commerce-operations/installation-guide/system-requirements) for the authoritative platform matrix.
 
@@ -130,7 +133,7 @@ Navigate to **Stores > Configuration > NexorAIQ** in the Magento Admin Panel.
 ### 1. General Settings & Connection Status
 *Navigate to: **Stores > Configuration > NexorAIQ > General Settings***
 
-![NexorAIQ General Settings](docs/screenshots/admin-general-settings.svg)
+![NexorAIQ General Settings](docs/screenshots/admin-general-settings.png)
 
 - **Branded Header Banner**: Displays real-time connector status, live product sync counter, store views count, and active plan verification.
 - **Connection Key**: Securely binds your Magento catalog with your NexorAIQ cluster (`nxk_live_...`).
@@ -141,7 +144,7 @@ Navigate to **Stores > Configuration > NexorAIQ** in the Magento Admin Panel.
 ### 2. Storefront UI Takeover & Search Modes
 *Navigate to: **Stores > Configuration > NexorAIQ > Storefront***
 
-![NexorAIQ Storefront Configuration](docs/screenshots/admin-storefront-settings.svg)
+![NexorAIQ Storefront Configuration](docs/screenshots/admin-storefront-settings.png)
 
 - **Search Type**: Choose between `Keyword`, `Vector` (AI semantic), or `Hybrid` search retrieval.
 - **Responsive Layout**: Choose **Autocomplete Dropdown** or **Overlay Layout** (1-Column or 2-Columns with suggestions, brands, and categories).
@@ -152,20 +155,20 @@ Navigate to **Stores > Configuration > NexorAIQ** in the Magento Admin Panel.
 ### 3. Attributes & Brands Configuration
 *Navigate to: **Stores > Configuration > NexorAIQ > General Settings > Attributes / Brands***
 
-![NexorAIQ Attributes and Brands Mapping](docs/screenshots/admin-attributes-brands.svg)
+![NexorAIQ Attributes and Brands Mapping](docs/screenshots/admin-attributes-brands.png)
 
 - **Extra Attributes**: Select non-standard product attributes to include in the AI search index.
 - **Brand Identification**: Map custom manufacturer/brand attributes for brand facet filtering and dedicated overlay brand carousels.
 
 ---
 
-### 4. Product Edit Page - Real-Time Sync Status Badge
-*Navigate to: **Catalog > Products > Edit Product***
+### 4. Search Results Page & Add to Cart
+*Navigate to: **Stores > Configuration > NexorAIQ > Storefront > Search Results Page / Add to Cart***
 
-![NexorAIQ Product Catalog Sync Status](docs/screenshots/admin-product-sync-status.svg)
+![NexorAIQ Search Results and Add to Cart](docs/screenshots/admin-search-results-cart.png)
 
-- **Live Status Badges**: See instant synchronization status (`SYNCED`, `IN QUEUE`, or `SKIPPED`) across each active store view.
-- **On-Demand Resync**: Click **Resync Product** to trigger an immediate background or direct sync of the current entity.
+- **Dedicated Search Route**: Configure custom URL path (e.g., `/search?q=...`), products per page, and layered filters.
+- **Quick Add to Cart**: Enable direct conversion actions from the search overlay and search results page with mini cart drawer integration.
 
 ---
 
@@ -197,7 +200,7 @@ bin/magento cron:run
 
 ## Headless API Reference
 
-The connector provides secure proxy endpoints for headless storefronts (PWA Studio, Next.js, Vue Storefront, etc.).
+Headless storefronts (for example Next.js or Vue Storefront) can use these GraphQL and REST endpoints; the connector does not ship frontend components for them.
 
 ### GraphQL API (`/graphql`)
 
@@ -328,6 +331,13 @@ Before deploying to production, verify the following in a staging Magento instal
 - The GraphQL `nexoraiqTrackEvent` mutation accepts click events; add-to-cart and conversion events are logged server-side. It does not accept a `revenue` argument.
 - The Composer install command works only when the package is published in a Composer repository accessible to the installing project.
 - The connector targets Magento Open Source, Adobe Commerce, and Mage-OS 2.4.x, including 2.4.9. Platform-level PHP compatibility varies by exact patch release; Magento / Adobe Commerce 2.4.9 recommends PHP 8.5 for production, while PHP 8.4 is allowed for upgrade scenarios. Validate the connector on each target runtime before deployment.
+
+## Privacy & Data Sent to NexorAIQ
+
+- **Catalog data**: product attributes, prices, stock, images and URLs of the store views activated in the NexorAIQ dashboard.
+- **Search and analytics**: search queries, clicked / added-to-cart / ordered product ids, order line revenue and currency, store view code, device type and a browser session id.
+- **Shopper id**: for logged-in customers an identifier derived from the customer's email address (`user_` + Base64 of the email; Base64 is an encoding, not a hash, so NexorAIQ can read the email), `guest_1` for guests. Mention this in your store's privacy policy.
+- No payment data, addresses or passwords are sent.
 
 ## Security
 

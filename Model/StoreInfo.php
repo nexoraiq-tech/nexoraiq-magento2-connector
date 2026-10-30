@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace NexorAIQ\Connector\Model;
 
+use Magento\Framework\Webapi\Rest\Response as RestResponse;
 use NexorAIQ\Connector\Api\StoreInfoInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\App\ProductMetadataInterface;
@@ -27,8 +28,10 @@ class StoreInfo implements StoreInfoInterface
         private readonly ProductCollectionFactory $productCollectionFactory,
         private readonly StoreManagerInterface $storeManager,
         private readonly EncryptorInterface $encryptor,
-        private readonly LoggerInterface $logger
-    ) {}
+        private readonly LoggerInterface $logger,
+        private readonly RestResponse $response
+    ) {
+    }
 
     public function getStoreInfo(string $key = ''): string
     {
@@ -38,7 +41,7 @@ class StoreInfo implements StoreInfoInterface
         );
         $storedKey = $storedEncrypted !== '' ? $this->encryptor->decrypt($storedEncrypted) : '';
 
-        if ($key === '' || $storedKey === '' || $key !== $storedKey) {
+        if ($key === '' || $storedKey === '' || !hash_equals($storedKey, $key)) {
             $this->logger->warning('NexoraIQ StoreInfo: store-info rejected — invalid connection key');
             throw new WebapiException(__('Invalid connection key'), 0, WebapiException::HTTP_UNAUTHORIZED);
         }
@@ -69,14 +72,16 @@ class StoreInfo implements StoreInfoInterface
         }
         unset($view);
 
-        $defaultWebsite = array_reduce($websites, function($carry, $w) {
+        $defaultWebsite = array_reduce($websites, function ($carry, $w) {
             return ($carry === null || $w['sort_order'] < $carry['sort_order']) ? $w : $carry;
         }, null);
         $defaultWebsiteId = $defaultWebsite ? $defaultWebsite['id'] : null;
         $defaultGroupId = $defaultWebsite ? $defaultWebsite['default_group_id'] : null;
 
         $groupMap = [];
-        foreach ($storeGroups as $g) $groupMap[$g['id']] = $g;
+        foreach ($storeGroups as $g) {
+            $groupMap[$g['id']] = $g;
+        }
 
         $defaultStoreViewId = $defaultGroupId && isset($groupMap[$defaultGroupId])
             ? $groupMap[$defaultGroupId]['default_store_id']
@@ -106,11 +111,9 @@ class StoreInfo implements StoreInfoInterface
         $isBrandMandatory = (int)($this->scopeConfig->getValue('nexoraiq/brands_config/is_brand_mandatory', ScopeInterface::SCOPE_STORE) ?? 0);
 
         // Send HTTP cache-control headers to prevent caching of this endpoint by browser, Cloudflare, Varnish, or Magento Full Page Cache (FPC).
-        if (!headers_sent()) {
-            header("Cache-Control: no-cache, no-store, must-revalidate, max-age=0");
-            header("Pragma: no-cache");
-            header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
-        }
+        $this->response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0', true);
+        $this->response->setHeader('Pragma', 'no-cache', true);
+        $this->response->setHeader('Expires', 'Mon, 26 Jul 1997 05:00:00 GMT', true);
 
         return (string)json_encode([
             'websites'                  => $websites,
@@ -249,7 +252,9 @@ class StoreInfo implements StoreInfoInterface
                      ->where('path = ?', 'general/locale/code')
                      ->where('scope = ?', $scope)->where('scope_id = ?', $scopeId)
             );
-            if ($v !== false && $v !== '') return (string)$v;
+            if ($v !== false && $v !== '') {
+                return (string)$v;
+            }
         }
         return 'en_US';
     }
@@ -273,10 +278,14 @@ class StoreInfo implements StoreInfoInterface
                          ->where('path = ?', $path)->where('scope = ?', $scope)->where('scope_id = ?', $sid)
                 );
                 if ($v !== false && $v !== '') {
-                    $result[(string)$wid] = (string)$v; $found = true; break;
+                    $result[(string)$wid] = (string)$v;
+                    $found = true;
+                    break;
                 }
             }
-            if (!$found) $result[(string)$wid] = 'USD';
+            if (!$found) {
+                $result[(string)$wid] = 'USD';
+            }
         }
         return $result;
     }

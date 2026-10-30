@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright © 2025 NexoraIQ. All rights reserved.
+ * Copyright © 2025 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -12,6 +12,7 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\Config\Storage\WriterInterface;
 use Magento\Framework\App\Config\ReinitableConfigInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
+use Magento\Framework\Webapi\Exception as WebapiException;
 use Magento\Store\Model\ScopeInterface;
 use NexorAIQ\Connector\Api\ActiveStoreViewsInterface;
 use Psr\Log\LoggerInterface;
@@ -27,12 +28,14 @@ class ActiveStoreViews implements ActiveStoreViewsInterface
         private readonly ReinitableConfigInterface $reinitableConfig,
         private readonly EncryptorInterface $encryptor,
         private readonly LoggerInterface $logger
-    ) {}
+    ) {
+    }
 
     /**
      * @param string $key
      * @param mixed $activeStoreViews
      * @return string
+     * @throws WebapiException When the connection key is wrong
      */
     public function update(string $key, $activeStoreViews): string
     {
@@ -42,12 +45,9 @@ class ActiveStoreViews implements ActiveStoreViewsInterface
         );
         $storedKey = $storedEncrypted !== '' ? $this->encryptor->decrypt($storedEncrypted) : '';
 
-        if ($key === '' || $storedKey === '' || $key !== $storedKey) {
+        if ($key === '' || $storedKey === '' || !hash_equals($storedKey, $key)) {
             $this->logger->warning('NexorAIQ_Connector: active-store-views rejected — invalid connection key');
-            return (string) json_encode([
-                'status' => 'error',
-                'message' => 'Invalid connection key'
-            ]);
+            throw new WebapiException(__('Invalid connection key'), 0, WebapiException::HTTP_UNAUTHORIZED);
         }
 
         try {

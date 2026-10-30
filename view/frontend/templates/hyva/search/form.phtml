@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  *
  * Replaces the Hyvä header search form with the NexorAIQ autocomplete / overlay search UI.
  * Falls back to the stock Hyvä form when the storefront takeover is not active.
@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 use Hyva\Theme\Model\ViewModelRegistry;
 use Hyva\Theme\ViewModel\HyvaCsp;
+use Hyva\Theme\ViewModel\HeroiconsOutline;
 use Hyva\Theme\ViewModel\LucideIcons;
 use Magento\Framework\Escaper;
 use Magento\Framework\View\Element\Template;
@@ -33,7 +34,8 @@ if (!$nxqSearch->isActive()) {
 }
 
 /** @var LucideIcons $lucideIcons */
-$lucideIcons = $viewModels->require(LucideIcons::class);
+// Lucide icons ship with Hyvä 1.4+; older Hyvä (e.g. on Magento 2.4.6) has the same icons as Heroicons.
+$lucideIcons = $viewModels->require(class_exists(LucideIcons::class) ? LucideIcons::class : HeroiconsOutline::class);
 
 /** @var SearchHelper $helper */
 $helper = $this->helper(SearchHelper::class);
@@ -137,6 +139,8 @@ $showAddToCart = $nxqSearch->isAddToCartEnabled();
             searched: false,
             open: false,
             products: [],
+            // Search term the shown overlay products were loaded for ('' = trending products).
+            productsTerm: '',
             total: 0,
             suggestionItems: [],
             autocomplete: [],
@@ -315,6 +319,7 @@ $showAddToCart = $nxqSearch->isAddToCartEnabled();
                             return Promise.reject(new Error('overlay query failed'));
                         }
                         const result = {
+                            term,
                             products: (Array.isArray(data.products) ? data.products : []).slice(0, this.productsLimit()),
                             total: data.total || 0,
                             suggestions: mapSuggestions(data, suggestion ? suggestion.limit : 0)
@@ -337,6 +342,7 @@ $showAddToCart = $nxqSearch->isAddToCartEnabled();
             },
             showOverlay(result) {
                 this.products = result.products;
+                this.productsTerm = String(result.term || '').trim();
                 this.total = result.total || result.products.length;
                 this.suggestionItems = result.suggestions;
                 this.categories = result.categories;
@@ -461,7 +467,8 @@ $showAddToCart = $nxqSearch->isAddToCartEnabled();
                     return;
                 }
                 this.cartState[product.id] = 'adding';
-                window.nexoraiqCart.add(product, 1, this.query).then(outcome => {
+                const {query, source} = this.analyticsContext();
+                window.nexoraiqCart.add(product, 1, query, source).then(outcome => {
                     this.cartState[product.id] = outcome === 'added' ? 'added' : '';
                     if (outcome === 'added') {
                         // Close the overlay so the mini cart drawer is visible.
@@ -508,8 +515,15 @@ $showAddToCart = $nxqSearch->isAddToCartEnabled();
             },
 
             // ----- actions -----
+            // query / source of the shown products for CLICK, ADD_TO_CART and CONVERSION: the overlay's trending
+            // products (empty search) send query "trending" + source "trending", a typed search its keyword + "".
+            analyticsContext() {
+                const term = this.isOverlay() ? this.productsTerm : this.query.trim();
+                return window.nexoraiqAnalytics.context(term, term ? '' : 'trending');
+            },
             trackClick(product) {
-                window.nexoraiqAnalytics.click(product, this.query);
+                const {query, source} = this.analyticsContext();
+                window.nexoraiqAnalytics.click(product, query, source);
             },
             submit() {
                 const chosen = this.open && !this.isOverlay() ? this.autocomplete[this.activeIndex] : null;
@@ -573,7 +587,7 @@ $showAddToCart = $nxqSearch->isAddToCartEnabled();
         Alpine.data('initNexoraiqSearch', initNexoraiqSearch)
     }, { once: true })
 </script>
-<?php $hyvaCsp->registerInlineScript() ?>
+<?php if (isset($hyvaCsp)) { $hyvaCsp->registerInlineScript(); } /* Hyvä 1.3.11+ CSP */ ?>
 <div
     class="nxq-search container py-2 mx-auto text-black"
     x-data="initNexoraiqSearch"

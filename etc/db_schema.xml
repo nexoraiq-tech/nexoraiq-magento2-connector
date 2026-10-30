@@ -31,4 +31,16 @@
             <column name="product_id"/>
         </constraint>
     </table>
+    <table name="nexoraiq_sync_block" resource="default" engine="innodb" comment="NexorAIQ Sync Block State">
+        <column xsi:type="smallint" name="id" unsigned="true" nullable="false" default="1" comment="Row ID (single row)"/>
+        <column xsi:type="smallint" name="is_blocked" unsigned="true" nullable="false" default="0" comment="Is Sync Blocked"/>
+        <column xsi:type="smallint" name="http_code" unsigned="true" nullable="true" comment="API HTTP Code"/>
+        <column xsi:type="varchar" name="error_type" length="191" nullable="true" comment="API Error Type"/>
+        <column xsi:type="text" name="error_message" nullable="true" comment="API Error Message"/>
+        <column xsi:type="datetime" name="blocked_at" nullable="true" comment="Blocked At"/>
+        <column xsi:type="datetime" name="checked_at" nullable="true" comment="Checked At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="id"/>
+        </constraint>
+    </table>
 </schema>

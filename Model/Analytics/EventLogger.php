@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -17,8 +17,10 @@ use Psr\Log\LoggerInterface;
 /**
  * Sends storefront analytics to the NexorAIQ GraphQL "logEvent" mutation, per store view.
  *
- * Every event carries sessionId, userId and device (Model\Api\RequestContext) and storeView: the store code,
- * e.g. "india_en" (NexorAIQ identifies store views by code, so the numeric Magento store id is not sent).
+ * Every event carries sessionId, userId and device (Model\Api\RequestContext), storeView: the store code,
+ * e.g. "india_en" (NexorAIQ identifies store views by code, so the numeric Magento store id is not sent), and
+ * source: "trending" when the product came from the trending products the search overlay shows before
+ * anything is typed (query is then "trending" too), otherwise "" (always sent, even when blank).
  * On top of that each event type sends its own fields:
  * - CLICK:       query, productId
  * - ADD_TO_CART: query, productId
@@ -66,7 +68,11 @@ class EventLogger
         'userId'      => 'String',
         'device'      => 'String',
         'storeView'   => 'String',
+        'source'      => 'String',
     ];
+
+    /** source of products picked from the overlay's trending products (empty search); also their query. */
+    public const SOURCE_TRENDING = 'trending';
 
     private const TIMEOUT = 5;
     /** Conversions carry revenue and the API can take ~3s to answer, so they get longer before giving up. */
@@ -308,6 +314,10 @@ class EventLogger
             'device'      => $this->requestContext->getDevice(),
             'storeView'   => (string)$store->getCode(),
         ];
+        $source = $this->source($data['source'] ?? null);
+        if ($source === self::SOURCE_TRENDING) {
+            $fields['query'] = self::SOURCE_TRENDING;
+        }
         foreach (self::EVENT_FIELDS[$eventType] as $name => $type) {
             $value = $data[$name] ?? null;
             if ($value === null || $value === '' || !is_scalar($value)) {
@@ -323,7 +333,15 @@ class EventLogger
             }
         }
 
-        return array_filter($fields, static fn ($value) => $value !== null && $value !== '');
+        // source is always sent: "trending" or blank.
+        return array_filter($fields, static fn ($value) => $value !== null && $value !== '') + ['source' => $source];
     }
 
+    /**
+     * Known event source ("trending"), or '' for anything else (a typed search, no search at all).
+     */
+    public function source(mixed $source): string
+    {
+        return is_string($source) && strtolower(trim($source)) === self::SOURCE_TRENDING ? self::SOURCE_TRENDING : '';
+    }
 }

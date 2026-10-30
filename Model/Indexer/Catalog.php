@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2025 NexoraIQ. All rights reserved.
+ * Copyright © 2025 NexorAIQ. All rights reserved.
  */
 declare(strict_types=1);
 
@@ -15,7 +15,8 @@ class Catalog implements IndexerActionInterface, MviewActionInterface
     public function __construct(
         private readonly CatalogAction $actionWorker,
         private readonly HelperData $helper
-    ) {}
+    ) {
+    }
 
     /**
      * Used by Mview trigger execution (scheduled cron updates). Gated on realtime_sync so

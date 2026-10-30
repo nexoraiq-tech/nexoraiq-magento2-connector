@@ -129,33 +129,33 @@ require(['jquery'], function ($) {
     var card = root.find('[data-role="card"]');
     var url = root.data('url');
     var t = {
-        currentPlan: <?= json_encode(__('Current plan')->render()) ?>,
-        perMonth: <?= json_encode(__('/month')->render()) ?>,
-        perYear: <?= json_encode(__('/year')->render()) ?>,
-        or: <?= json_encode(__('or')->render()) ?>,
-        free: <?= json_encode(__('Free')->render()) ?>,
-        limits: <?= json_encode(__('Plan limits')->render()) ?>,
-        usage: <?= json_encode(__('Plan / Usage this period')->render()) ?>,
-        used: <?= json_encode(__('Used')->render()) ?>,
-        limit: <?= json_encode(__('Limit')->render()) ?>,
-        remaining: <?= json_encode(__('Remaining')->render()) ?>,
-        unlimited: <?= json_encode(__('Unlimited')->render()) ?>,
-        resetsOn: <?= json_encode(__('Usage resets on')->render()) ?>,
-        periodFrom: <?= json_encode(__('period started')->render()) ?>,
-        features: <?= json_encode(__('Included features')->render()) ?>,
-        upgrade: <?= json_encode(__('Upgrade Plan')->render()) ?>,
-        opening: <?= json_encode(__('Opening…')->render()) ?>,
-        refresh: <?= json_encode(__('Refresh')->render()) ?>,
-        hint: <?= json_encode(__('Opens Plan & Subscription in a new tab, already signed in.')->render()) ?>,
-        trialEnds: <?= json_encode(__('Free trial ends')->render()) ?>,
-        trialEnded: <?= json_encode(__('Your free trial has ended')->render()) ?>,
-        daysLeft: <?= json_encode(__('days left')->render()) ?>,
-        dayLeft: <?= json_encode(__('day left')->render()) ?>,
-        errTitle: <?= json_encode(__('Could not load your plan')->render()) ?>,
-        retry: <?= json_encode(__('Try again')->render()) ?>,
-        noLink: <?= json_encode(__('NexorAIQ did not return a login link. Please try again.')->render()) ?>,
-        popup: <?= json_encode(__('Your browser blocked the new tab. Allow pop-ups for this page and try again.')->render()) ?>,
-        failed: <?= json_encode(__('Request failed. Please try again.')->render()) ?>
+        currentPlan: '<?= $escaper->escapeJs(__('Current plan')) ?>',
+        perMonth: '<?= $escaper->escapeJs(__('/month')) ?>',
+        perYear: '<?= $escaper->escapeJs(__('/year')) ?>',
+        or: '<?= $escaper->escapeJs(__('or')) ?>',
+        free: '<?= $escaper->escapeJs(__('Free')) ?>',
+        limits: '<?= $escaper->escapeJs(__('Plan limits')) ?>',
+        usage: '<?= $escaper->escapeJs(__('Plan / Usage this period')) ?>',
+        used: '<?= $escaper->escapeJs(__('Used')) ?>',
+        limit: '<?= $escaper->escapeJs(__('Limit')) ?>',
+        remaining: '<?= $escaper->escapeJs(__('Remaining')) ?>',
+        unlimited: '<?= $escaper->escapeJs(__('Unlimited')) ?>',
+        resetsOn: '<?= $escaper->escapeJs(__('Usage resets on')) ?>',
+        periodFrom: '<?= $escaper->escapeJs(__('period started')) ?>',
+        features: '<?= $escaper->escapeJs(__('Included features')) ?>',
+        upgrade: '<?= $escaper->escapeJs(__('Upgrade Plan')) ?>',
+        opening: '<?= $escaper->escapeJs(__('Opening…')) ?>',
+        refresh: '<?= $escaper->escapeJs(__('Refresh')) ?>',
+        hint: '<?= $escaper->escapeJs(__('Opens Plan & Subscription in a new tab, already signed in.')) ?>',
+        trialEnds: '<?= $escaper->escapeJs(__('Free trial ends')) ?>',
+        trialEnded: '<?= $escaper->escapeJs(__('Your free trial has ended')) ?>',
+        daysLeft: '<?= $escaper->escapeJs(__('days left')) ?>',
+        dayLeft: '<?= $escaper->escapeJs(__('day left')) ?>',
+        errTitle: '<?= $escaper->escapeJs(__('Could not load your plan')) ?>',
+        retry: '<?= $escaper->escapeJs(__('Try again')) ?>',
+        noLink: '<?= $escaper->escapeJs(__('NexorAIQ did not return a login link. Please try again.')) ?>',
+        popup: '<?= $escaper->escapeJs(__('Your browser blocked the new tab. Allow pop-ups for this page and try again.')) ?>',
+        failed: '<?= $escaper->escapeJs(__('Request failed. Please try again.')) ?>'
     };
     var statusLabels = {
         trialing: 'Free Trial', active: 'Active', past_due: 'Payment Due', unpaid: 'Unpaid',
@@ -418,7 +418,7 @@ require(['jquery'], function ($) {
 
     function load() {
         card.html('<div class="nxq-plan__loading"><span class="nxq-plan__spinner"></span><span></span></div>')
-            .find('span:last').text(<?= json_encode(__('Loading your plan…')->render()) ?>);
+            .find('span:last').text('<?= $escaper->escapeJs(__('Loading your plan…')) ?>');
         request().done(function (res) {
             if (res && res.success) { renderPlan(res); } else { renderError(res && res.message); }
         }).fail(function () { renderError(t.failed); });

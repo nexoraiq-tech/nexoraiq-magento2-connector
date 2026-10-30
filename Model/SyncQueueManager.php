@@ -15,40 +15,13 @@ use Psr\Log\LoggerInterface;
 class SyncQueueManager
 {
     private const TABLE_NAME = 'nexoraiq_sync_queue';
-    private static bool $tableChecked = false;
 
     public function __construct(
         private readonly ResourceConnection $resourceConnection,
         private readonly LoggerInterface $logger
-    ) {}
-
-    /**
-     * Ensures table exists so the queue works immediately without requiring setup:upgrade
-     */
-    private function ensureTableExists(): void
-    {
-        if (self::$tableChecked) {
-            return;
-        }
-
-        try {
-            $connection = $this->resourceConnection->getConnection();
-            $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
-
-            if (!$connection->isTableExists($tableName)) {
-                $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
-                    `entity_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                    `product_id` INT UNSIGNED NOT NULL,
-                    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY `NEXORAIQ_SYNC_QUEUE_PRODUCT_ID` (`product_id`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-                $connection->query($sql);
-            }
-            self::$tableChecked = true;
-        } catch (\Throwable $e) {
-            $this->logger->error('NexoraIQ SyncQueueManager ensureTableExists failed: ' . $e->getMessage());
-        }
+    ) {
     }
+
 
     /**
      * Enqueue product IDs for async sync. Fast local insert only — no network I/O,
@@ -63,7 +36,6 @@ class SyncQueueManager
             return;
         }
 
-        $this->ensureTableExists();
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
@@ -83,7 +55,6 @@ class SyncQueueManager
      */
     public function dequeueBatch(int $limit): array
     {
-        $this->ensureTableExists();
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
@@ -123,7 +94,6 @@ class SyncQueueManager
             return;
         }
 
-        $this->ensureTableExists();
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);

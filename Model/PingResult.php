@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright © 2025 NexoraIQ. All rights reserved.
+ * Copyright © 2025 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -26,19 +26,59 @@ class PingResult implements PingResultInterface
         private readonly int     $storeCount,
         private readonly ?string $accessToken = null,
         private readonly ?string $cronDiagnostics = null,
-    ) {}
+    ) {
+    }
 
-    public function getStatus(): string                { return $this->status; }
-    public function getExtension(): string             { return $this->extension; }
-    public function getVersion(): string               { return $this->version; }
-    public function getPlatform(): string              { return $this->platform; }
-    public function getMagentoVersion(): string        { return $this->magentoVersion; }
-    public function getEdition(): string               { return $this->edition; }
-    public function getConnectionKeyConfigured(): bool { return $this->connectionKeyConfigured; }
-    public function getConnectionKeyValid(): bool      { return $this->connectionKeyValid; }
-    public function getCatalogAccessible(): bool       { return $this->catalogAccessible; }
-    public function getProductCount(): int             { return $this->productCount; }
-    public function getStoreCount(): int               { return $this->storeCount; }
-    public function getAccessToken(): ?string          { return $this->accessToken; }
-    public function getCronDiagnostics(): ?string      { return $this->cronDiagnostics; }
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+    public function getExtension(): string
+    {
+        return $this->extension;
+    }
+    public function getVersion(): string
+    {
+        return $this->version;
+    }
+    public function getPlatform(): string
+    {
+        return $this->platform;
+    }
+    public function getMagentoVersion(): string
+    {
+        return $this->magentoVersion;
+    }
+    public function getEdition(): string
+    {
+        return $this->edition;
+    }
+    public function getConnectionKeyConfigured(): bool
+    {
+        return $this->connectionKeyConfigured;
+    }
+    public function getConnectionKeyValid(): bool
+    {
+        return $this->connectionKeyValid;
+    }
+    public function getCatalogAccessible(): bool
+    {
+        return $this->catalogAccessible;
+    }
+    public function getProductCount(): int
+    {
+        return $this->productCount;
+    }
+    public function getStoreCount(): int
+    {
+        return $this->storeCount;
+    }
+    public function getAccessToken(): ?string
+    {
+        return $this->accessToken;
+    }
+    public function getCronDiagnostics(): ?string
+    {
+        return $this->cronDiagnostics;
+    }
 }

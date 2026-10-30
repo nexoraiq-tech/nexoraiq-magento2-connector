@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright © 2025 NexoraIQ. All rights reserved.
+ * Copyright © 2025 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -82,6 +82,7 @@ interface SearchRepositoryInterface
      * @param string|null $productId Search hit externalId or "{websiteId}_{storeId}_{entityId}" (CLICK)
      * @param string|null $query
      * @param int|null $storeId
+     * @param string|null $source "trending" for the search overlay's trending products, otherwise blank
      * @return bool
      */
     public function trackEvent(
@@ -89,6 +90,7 @@ interface SearchRepositoryInterface
         string $sessionId,
         ?string $productId = null,
         ?string $query = null,
-        ?int $storeId = null
+        ?int $storeId = null,
+        ?string $source = null
     ): bool;
 }

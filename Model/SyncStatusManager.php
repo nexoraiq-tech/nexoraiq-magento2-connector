@@ -10,47 +10,15 @@ use Psr\Log\LoggerInterface;
 class SyncStatusManager
 {
     private const TABLE_NAME = 'nexoraiq_product_sync_status';
-    private static bool $tableChecked = false;
     private array $storeIdCache = [];
 
     public function __construct(
         private readonly ResourceConnection $resourceConnection,
         private readonly StoreManagerInterface $storeManager,
         private readonly LoggerInterface $logger
-    ) {}
-
-    /**
-     * Ensures table exists so extension works immediately without requiring setup:upgrade
-     */
-    private function ensureTableExists(): void
-    {
-        if (self::$tableChecked) {
-            return;
-        }
-
-        try {
-            $connection = $this->resourceConnection->getConnection();
-            $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
-
-            if (!$connection->isTableExists($tableName)) {
-                $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
-                    `entity_id` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                    `product_id` INT UNSIGNED NOT NULL,
-                    `store_id` INT UNSIGNED NOT NULL DEFAULT 0,
-                    `store_code` VARCHAR(64) NOT NULL DEFAULT '',
-                    `is_synced` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
-                    `last_synced_at` DATETIME NULL,
-                    `indexed_fields` TEXT NULL,
-                    UNIQUE KEY `NEXORAIQ_SYNC_PROD_STORE` (`product_id`, `store_id`),
-                    KEY `NEXORAIQ_SYNC_PROD_ID` (`product_id`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-                $connection->query($sql);
-            }
-            self::$tableChecked = true;
-        } catch (\Throwable $e) {
-            $this->logger->error('NexoraIQ SyncStatusManager ensureTableExists failed: ' . $e->getMessage());
-        }
+    ) {
     }
+
 
     /**
      * Resolve numeric store_id from store_code if store_id <= 0.
@@ -102,7 +70,6 @@ class SyncStatusManager
      */
     public function clearSyncStatusForStore(int $storeId = 0, string $storeCode = ''): void
     {
-        $this->ensureTableExists();
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
@@ -126,7 +93,6 @@ class SyncStatusManager
      */
     public function clearAllSyncStatuses(): void
     {
-        $this->ensureTableExists();
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
@@ -149,7 +115,6 @@ class SyncStatusManager
         array $fields = [],
         ?string $syncedAt = null
     ): void {
-        $this->ensureTableExists();
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
@@ -189,7 +154,6 @@ class SyncStatusManager
             return;
         }
 
-        $this->ensureTableExists();
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
@@ -258,7 +222,6 @@ class SyncStatusManager
      */
     public function getSyncStatusesFromDb(int $productId): array
     {
-        $this->ensureTableExists();
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
@@ -291,7 +254,6 @@ class SyncStatusManager
      */
     public function isRecentlySynced(int $productId, int $storeId, int $withinSeconds = 300, bool $requireStock = true): bool
     {
-        $this->ensureTableExists();
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
@@ -332,7 +294,6 @@ class SyncStatusManager
             return [];
         }
 
-        $this->ensureTableExists();
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);

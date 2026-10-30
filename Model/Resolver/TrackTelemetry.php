@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright © 2025 NexoraIQ. All rights reserved.
+ * Copyright © 2025 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -69,6 +69,7 @@ class TrackTelemetry implements ResolverInterface
                         'sessionId' => $args['sessionId'] ?? null,
                         'query'     => $args['query'] ?? null,
                         'productId' => $this->eventLogger->normalizeProductId($args['productId'] ?? null),
+                        'source'    => $args['source'] ?? null,
                     ], $store) !== null;
 
                 default:

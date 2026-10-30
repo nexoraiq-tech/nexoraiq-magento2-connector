@@ -19,7 +19,8 @@ class StockUpdateAfter implements ObserverInterface
         private readonly SyncQueueManager $syncQueueManager,
         private readonly HelperData $helper,
         private readonly LoggerInterface $logger
-    ) {}
+    ) {
+    }
 
     public function execute(Observer $observer): void
     {
@@ -28,7 +29,9 @@ class StockUpdateAfter implements ObserverInterface
         }
 
         $item = $observer->getEvent()->getItem();
-        if (!$item || !$item->getProductId()) return;
+        if (!$item || !$item->getProductId()) {
+            return;
+        }
 
         $productId = (int) $item->getProductId();
         $this->logger->info(sprintf('cataloginventory_stock_item_save_after: product_id=%d enqueued', $productId));

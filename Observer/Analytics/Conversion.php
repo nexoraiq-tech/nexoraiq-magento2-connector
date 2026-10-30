@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -52,6 +52,7 @@ class Conversion implements ObserverInterface
 
                 $events[] = [EventLogger::CONVERSION, [
                     'query'            => $attribution['query'] ?? null,
+                    'source'           => $attribution['source'] ?? '',
                     'productId'        => $productId,
                     'revenue'          => $this->lineTotal($item, false),
                     'currencyCode'     => $currency,
@@ -73,14 +74,14 @@ class Conversion implements ObserverInterface
     /**
      * Search attribution copied from the cart item's buy request, or the browser cookie as a fallback.
      *
-     * @return array{query: string, productId: string}|null
+     * @return array{query: string, productId: string, source: string}|null
      */
     private function attributionOf(OrderItem $item): ?array
     {
         $buyRequest = $item->getProductOptions()['info_buyRequest'] ?? null;
         $entry = is_array($buyRequest) ? ($buyRequest[Attribution::BUY_REQUEST_KEY] ?? null) : null;
         if (is_array($entry) && !empty($entry['query'])) {
-            return ['query' => (string)$entry['query'], 'productId' => (string)($entry['productId'] ?? '')];
+            return $this->attribution->normalize($entry);
         }
 
         // The storefront keys the cookie by the search hit's SKU, which for a configurable is the parent SKU,

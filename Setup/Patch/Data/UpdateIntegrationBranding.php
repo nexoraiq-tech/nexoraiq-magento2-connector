@@ -15,7 +15,8 @@ class UpdateIntegrationBranding implements DataPatchInterface
     public function __construct(
         private readonly ModuleDataSetupInterface    $moduleDataSetup,
         private readonly IntegrationServiceInterface $integrationService,
-    ) {}
+    ) {
+    }
 
     public function apply(): static
     {

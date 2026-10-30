@@ -1,5 +1,5 @@
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  *
  * Add to Cart from the search overlay and the search results page. Posts the SKU to nexoraiq/cart/add,
  * which forwards to Magento's checkout/cart/add. jQuery AJAX on purpose: customer-data then reloads the
@@ -57,11 +57,12 @@ define([
             },
 
             /**
-             * Resolves to 'added', 'redirect' or 'error'. query: the search the product was found with.
+             * Resolves to 'added', 'redirect' or 'error'. query / source: the search the product was found with
+             * ("" / "trending" for the overlay's trending products).
              */
-            add: function (hit, qty, query) {
-                // Search the product was found with, for the ADD_TO_CART event.
-                analytics.remember(hit, query);
+            add: function (hit, qty, query, source) {
+                // Search the product was found with, for the ADD_TO_CART and CONVERSION events.
+                analytics.remember(hit, query, source);
 
                 return new Promise(function (resolve) {
                     // Mini cart spinner, as Magento_Catalog/js/catalog-add-to-cart.

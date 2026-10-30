@@ -1,5 +1,5 @@
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  */
 var config = {
     map: {

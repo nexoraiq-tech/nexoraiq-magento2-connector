@@ -17,7 +17,8 @@ class PreventIntegrationDelete
 {
     public function __construct(
         private readonly IntegrationServiceInterface $integrationService,
-    ) {}
+    ) {
+    }
 
     /**
      * @throws LocalizedException

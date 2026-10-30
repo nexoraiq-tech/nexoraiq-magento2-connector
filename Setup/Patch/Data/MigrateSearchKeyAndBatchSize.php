@@ -17,7 +17,8 @@ class MigrateSearchKeyAndBatchSize implements DataPatchInterface
     public function __construct(
         private readonly ModuleDataSetupInterface $moduleDataSetup,
         private readonly EncryptorInterface $encryptor
-    ) {}
+    ) {
+    }
 
     public function apply(): static
     {

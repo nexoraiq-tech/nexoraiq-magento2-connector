@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright © 2025 NexoraIQ. All rights reserved.
+ * Copyright © 2025 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -12,6 +12,7 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Encryption\EncryptorInterface;
+use Magento\Framework\Module\PackageInfo;
 use Magento\Integration\Api\IntegrationServiceInterface;
 use Magento\Integration\Api\OauthServiceInterface;
 use Magento\Store\Model\ScopeInterface;
@@ -24,7 +25,6 @@ use Psr\Log\LoggerInterface;
 class Connector implements ConnectorInterface
 {
     private const CONFIG_PATH_KEY = 'nexoraiq/general/connection_key';
-    private const MODULE_VERSION  = '1.0.0';
     private const MODULE_NAME     = 'NexorAIQ_Connector';
 
     public function __construct(
@@ -37,7 +37,9 @@ class Connector implements ConnectorInterface
         private readonly PingResultFactory         $pingResultFactory,
         private readonly IntegrationServiceInterface $integrationService,
         private readonly OauthServiceInterface       $oauthService,
-    ) {}
+        private readonly PackageInfo                 $packageInfo,
+    ) {
+    }
 
     public function ping(?string $key = null): PingResultInterface
     {
@@ -48,14 +50,27 @@ class Connector implements ConnectorInterface
         $storedKey    = $storedEncrypted !== '' ? $this->encryptor->decrypt($storedEncrypted) : '';
         $keyConfigured = $storedKey !== '';
 
-        $keyValid = false;
-        if ($key !== null && $key !== '') {
-            $keyValid = $key === $storedKey;
-        } elseif ($keyConfigured) {
-            $keyValid = true;
-        }
+        // Only a request carrying the configured connection key is trusted (the NexorAIQ platform always sends it).
+        $keyValid = $keyConfigured && $key !== null && $key !== '' && hash_equals($storedKey, $key);
 
         $this->logger->info(sprintf('NexorAIQ_Connector: ping requested (keyConfigured=%s, keyValid=%s)', $keyConfigured ? 'true' : 'false', $keyValid ? 'true' : 'false'));
+
+        if (!$keyValid) {
+            // Anonymous / wrong key: confirm the connector is installed, nothing about the store or its catalog.
+            return $this->pingResultFactory->create([
+                'status'                  => 'ok',
+                'extension'               => self::MODULE_NAME,
+                'version'                 => $this->moduleVersion(),
+                'platform'                => 'magento2',
+                'magentoVersion'          => '',
+                'edition'                 => '',
+                'connectionKeyConfigured' => $keyConfigured,
+                'connectionKeyValid'      => false,
+                'catalogAccessible'       => false,
+                'productCount'            => 0,
+                'storeCount'              => 0,
+            ]);
+        }
 
         $productCount     = 0;
         $catalogAccessible = false;
@@ -70,7 +85,9 @@ class Connector implements ConnectorInterface
                         ->where('attribute_code = ?', 'status')
                         ->where('entity_type_id = ?', 4)
                 );
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+
+            }
             $pei = $this->resourceConnection->getTableName('catalog_product_entity_int');
             $productCount = (int)$conn->fetchOne(
                 $conn->select()
@@ -154,7 +171,7 @@ class Connector implements ConnectorInterface
         return $this->pingResultFactory->create([
             'status'                 => 'ok',
             'extension'              => self::MODULE_NAME,
-            'version'                => self::MODULE_VERSION,
+            'version'                => $this->moduleVersion(),
             'platform'               => 'magento2',
             'magentoVersion'         => $this->productMetadata->getVersion(),
             'edition'                => $this->productMetadata->getEdition(),
@@ -166,5 +183,13 @@ class Connector implements ConnectorInterface
             'accessToken'             => $accessToken,
             'cronDiagnostics'         => $cronDiagnostics,
         ]);
+    }
+
+    /**
+     * Connector version from its composer.json.
+     */
+    private function moduleVersion(): string
+    {
+        return (string)$this->packageInfo->getVersion(self::MODULE_NAME);
     }
 }

@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -99,10 +99,10 @@ class RequestContext
         if (in_array($device, [self::DEVICE_DESKTOP, self::DEVICE_MOBILE, self::DEVICE_TABLET], true)) {
             return $device;
         }
-        return self::detectDevice((string)$this->request->getHeader('User-Agent'));
+        return $this->detectDevice((string)$this->request->getHeader('User-Agent'));
     }
 
-    public static function detectDevice(string $userAgent): string
+    public function detectDevice(string $userAgent): string
     {
         if (preg_match('/iPad|Tablet|PlayBook|Silk|Kindle|Nexus (7|9|10)|Android(?!.*Mobile)/i', $userAgent)) {
             return self::DEVICE_TABLET;

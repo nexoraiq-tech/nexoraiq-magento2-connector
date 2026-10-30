@@ -35,7 +35,14 @@ class Data extends AbstractHelper
         private readonly \Magento\Store\Model\StoreManagerInterface $storeManager,
         private readonly \Magento\Catalog\Api\ProductRepositoryInterface $productRepository,
         private readonly \Magento\CatalogInventory\Api\StockRegistryInterface $stockRegistry,
-        private readonly \Magento\Catalog\Model\ResourceModel\Category\CollectionFactory $categoryCollectionFactory
+        private readonly \Magento\Catalog\Model\ResourceModel\Category\CollectionFactory $categoryCollectionFactory,
+        private readonly \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $productCollectionFactory,
+        private readonly \Magento\Framework\App\ProductMetadataInterface $productMetadata,
+        private readonly \NexorAIQ\Connector\Model\SyncStatusManager $syncStatusManager,
+        private readonly \NexorAIQ\Connector\Model\SyncQueueManager $syncQueueManager,
+        private readonly \NexorAIQ\Connector\Model\SyncBlockManager $syncBlockManager,
+        private readonly \Magento\Framework\HTTP\Client\CurlFactory $curlFactory,
+        private readonly \NexorAIQ\Connector\Model\Inventory\SalableQtyProvider $salableQtyProvider
     ) {
         parent::__construct($context);
     }
@@ -159,9 +166,71 @@ class Data extends AbstractHelper
     private function authHeaders(): array
     {
         return [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $this->getConnectionKey(),
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer ' . $this->getConnectionKey(),
         ];
+    }
+
+    /**
+     * Sends a request to the NexorAIQ API through Magento's HTTP client.
+     *
+     * @param string $method GET or POST
+     * @param string $url
+     * @param array $headers Header name => value
+     * @param string|null $body Raw request body (POST only)
+     * @param int $connectTimeout Seconds
+     * @param int $timeout Seconds
+     * @return array{code: int, body: string, error: string}
+     */
+    private function apiRequest(
+        string $method,
+        string $url,
+        array $headers,
+        ?string $body = null,
+        int $connectTimeout = 3,
+        int $timeout = 5
+    ): array {
+        $verifySsl = $this->verifySsl();
+        $curl = $this->curlFactory->create();
+        $curl->setTimeout($timeout);
+        $curl->setOption(CURLOPT_CONNECTTIMEOUT, $connectTimeout);
+        $curl->setOption(CURLOPT_SSL_VERIFYPEER, $verifySsl);
+        $curl->setOption(CURLOPT_SSL_VERIFYHOST, $verifySsl ? 2 : 0);
+        $curl->setOption(CURLOPT_PROTOCOLS, CURLPROTO_HTTPS | CURLPROTO_HTTP);
+        $curl->setHeaders($headers);
+        try {
+            if ($method === 'POST') {
+                $curl->post($url, (string)$body);
+            } else {
+                $curl->get($url);
+            }
+        } catch (\Throwable $e) {
+            return ['code' => 0, 'body' => '', 'error' => $e->getMessage()];
+        }
+        return ['code' => (int)$curl->getStatus(), 'body' => (string)$curl->getBody(), 'error' => ''];
+    }
+
+    /**
+     * Scheme, host and port of the NexorAIQ API URL (e.g. "https://api.nexoraiq.tech"), or "" when invalid.
+     *
+     * @param int|string|null $storeId
+     * @return string
+     */
+    public function getApiOrigin($storeId = null): string
+    {
+        try {
+            $uri = new \Laminas\Uri\Http($this->getApiUrl($storeId));
+        } catch (\Throwable $e) {
+            return '';
+        }
+        $scheme = (string)$uri->getScheme();
+        $host = (string)$uri->getHost();
+        if ($scheme === '' || $host === '') {
+            return '';
+        }
+        $port = (int)$uri->getPort();
+        $defaultPort = $scheme === 'https' ? 443 : 80;
+        return $scheme . '://' . $host . ($port && $port !== $defaultPort ? ':' . $port : '');
     }
 
     public function verifySsl($storeId = null): bool
@@ -262,7 +331,7 @@ class Data extends AbstractHelper
                     $catUrl = null;
                 }
             }
-            $relativeUrl = $catUrl ? ltrim(parse_url($catUrl, PHP_URL_PATH) ?? '', '/') : null;
+            $relativeUrl = $catUrl ? ltrim((string)(new \Laminas\Uri\Http($catUrl))->getPath(), '/') : null;
             $image = $cat->getImage();
             $entries[] = [
                 'id' => (string)$cat->getId(),
@@ -403,20 +472,15 @@ class Data extends AbstractHelper
         $isInStock = $stockItem ? (bool)$stockItem->getIsInStock() : false;
         $salableQty = null;
 
-        // Resolve salable qty for MSI if available
-        if (interface_exists('Magento\InventorySalesApi\Api\GetProductSalableQtyInterface')) {
-            try {
-                $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-                $getSalableQty = $objectManager->get('Magento\InventorySalesApi\Api\GetProductSalableQtyInterface');
-                $stockResolver = $objectManager->get('Magento\InventorySalesApi\Api\StockResolverInterface');
-                $salesChannelInterface = $objectManager->get('Magento\InventorySalesApi\Api\Data\SalesChannelInterface');
-                $websiteCode = $store->getWebsite()->getCode();
-                $msiStock = $stockResolver->execute($salesChannelInterface::TYPE_WEBSITE, $websiteCode);
-                $salableQtyVal = $getSalableQty->execute($product->getSku(), $msiStock->getStockId());
-                $salableQty = (int)$salableQtyVal;
-            } catch (\Throwable $msiError) {
-                // Fallback to stock item qty
+        // Resolve salable qty from MSI when it is installed
+        try {
+            $msiQty = $this->salableQtyProvider->get((string)$product->getSku(), $store->getWebsite());
+            if ($msiQty !== null) {
+                $salableQty = (int)$msiQty;
             }
+        } catch (\Throwable $msiError) {
+            // Composite products have no salable qty: keep the stock item qty
+            $salableQty = null;
         }
 
         if ($salableQty !== null) {
@@ -441,7 +505,7 @@ class Data extends AbstractHelper
         $hasVariants = $typeId === 'configurable' && $this->hasVariants($product);
 
         $defaultProduct = null;
-        $getDefaultProduct = function() use (&$defaultProduct, $productId) {
+        $getDefaultProduct = function () use (&$defaultProduct, $productId) {
             if ($defaultProduct === null && $productId > 0) {
                 try {
                     $defaultProduct = $this->productRepository->getById($productId, false, 0);
@@ -456,21 +520,27 @@ class Data extends AbstractHelper
         $name = $product->getName();
         if ($name === null || $name === '') {
             $defP = $getDefaultProduct();
-            if ($defP) $name = $defP->getName();
+            if ($defP) {
+                $name = $defP->getName();
+            }
         }
 
         // Description fallback
         $description = $product->getDescription();
         if ($description === null || $description === '') {
             $defP = $getDefaultProduct();
-            if ($defP) $description = $defP->getDescription();
+            if ($defP) {
+                $description = $defP->getDescription();
+            }
         }
 
         // Short Description fallback
         $shortDescription = $product->getShortDescription();
         if ($shortDescription === null || $shortDescription === '') {
             $defP = $getDefaultProduct();
-            if ($defP) $shortDescription = $defP->getShortDescription();
+            if ($defP) {
+                $shortDescription = $defP->getShortDescription();
+            }
         }
 
         // Image fallback
@@ -639,9 +709,13 @@ class Data extends AbstractHelper
 
     public function syncProduct(int $productId, bool $deleted = false): bool
     {
-        if (!$this->isEnabled() || !$this->isRealtimeEnabled()) return false;
+        if (!$this->isEnabled() || !$this->isRealtimeEnabled()) {
+            return false;
+        }
         $key = $this->getConnectionKey();
-        if ($key === '') return false;
+        if ($key === '') {
+            return false;
+        }
 
         $activeStoreViews = $this->getActiveStoreViews();
         $storeViews = $this->storeManager->getStores();
@@ -697,19 +771,16 @@ class Data extends AbstractHelper
     private function sendWebhookPayload(array $payload): bool
     {
         $url = $this->getApiUrl() . '/integrations/magento/product-sync?storeViewId=' . urlencode($payload['store_view_code']);
-        $ch  = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => json_encode($payload),
-            CURLOPT_HTTPHEADER     => $this->authHeaders(),
-            CURLOPT_CONNECTTIMEOUT => 2,
-            CURLOPT_TIMEOUT        => 3,
-            CURLOPT_SSL_VERIFYPEER => $this->verifySsl(),
-        ]);
-        $res  = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $response = $this->apiRequest(
+            'POST',
+            $url,
+            $this->authHeaders(),
+            (string)json_encode($payload),
+            2,
+            3
+        );
+        $res = $response['body'];
+        $code = $response['code'];
 
         if ($code < 200 || $code >= 300) {
             $this->logger->warning('NexoraIQ sync webhook failed', [
@@ -729,7 +800,7 @@ class Data extends AbstractHelper
             || (isset($payload['status']) && in_array($payload['status'], [2, '2', 0, '0', 'disabled', 'deleted'], true));
         if ($productId > 0) {
             try {
-                $syncStatusManager = \Magento\Framework\App\ObjectManager::getInstance()->get(\NexorAIQ\Connector\Model\SyncStatusManager::class);
+                $syncStatusManager = $this->syncStatusManager;
                 if ($isDeletedOrDisabled) {
                     $syncStatusManager->saveSyncStatus($productId, $storeId, $storeCode, false, [], date('Y-m-d H:i:s'));
                 } else {
@@ -745,9 +816,11 @@ class Data extends AbstractHelper
 
                 // Dequeue from local sync queue so background cron job won't send duplicate bulk request
                 try {
-                    $syncQueueManager = \Magento\Framework\App\ObjectManager::getInstance()->get(\NexorAIQ\Connector\Model\SyncQueueManager::class);
+                    $syncQueueManager = $this->syncQueueManager;
                     $syncQueueManager->removeFromQueue([$productId]);
-                } catch (\Throwable $e) {}
+                } catch (\Throwable $e) {
+
+                }
             } catch (\Throwable $e) {
                 // Non-blocking fallback
                 $this->logger->error(sprintf(
@@ -765,19 +838,16 @@ class Data extends AbstractHelper
     public function sendBulkPayload(array $payloads, string $storeCode): bool
     {
         $url = $this->getApiUrl() . '/integrations/magento/product-sync-bulk?storeViewId=' . urlencode($storeCode);
-        $ch  = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => json_encode(['products' => $payloads]),
-            CURLOPT_HTTPHEADER     => $this->authHeaders(),
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_TIMEOUT        => 30,
-            CURLOPT_SSL_VERIFYPEER => $this->verifySsl(),
-        ]);
-        $res  = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $response = $this->apiRequest(
+            'POST',
+            $url,
+            $this->authHeaders(),
+            (string)json_encode(['products' => $payloads]),
+            5,
+            30
+        );
+        $res = $response['body'];
+        $code = $response['code'];
 
         if ($code < 200 || $code >= 300) {
             $this->logger->warning('NexoraIQ bulk sync failed', [
@@ -816,9 +886,7 @@ class Data extends AbstractHelper
                 }
 
                 try {
-                    \Magento\Framework\App\ObjectManager::getInstance()
-                        ->get(\NexorAIQ\Connector\Model\SyncBlockManager::class)
-                        ->setBlocked(402, $errorType, $errorMessage);
+                    $this->syncBlockManager->setBlocked(402, $errorType, $errorMessage);
                 } catch (\Throwable $e) {
                     $this->logger->error('NexoraIQ Helper: failed to persist sync block state: ' . $e->getMessage());
                 }
@@ -831,15 +899,17 @@ class Data extends AbstractHelper
         // account was fixed on the NexoraIQ side without going through Check Subscription),
         // clear it here too rather than leaving the admin notice stuck.
         try {
-            $syncBlockManager = \Magento\Framework\App\ObjectManager::getInstance()->get(\NexorAIQ\Connector\Model\SyncBlockManager::class);
+            $syncBlockManager = $this->syncBlockManager;
             if ($syncBlockManager->isBlocked()) {
                 $syncBlockManager->clearBlock();
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+
+        }
 
         // Persist sync status to local Magento database for all payloads in batch
         try {
-            $syncStatusManager = \Magento\Framework\App\ObjectManager::getInstance()->get(\NexorAIQ\Connector\Model\SyncStatusManager::class);
+            $syncStatusManager = $this->syncStatusManager;
             $batchItems = [];
             foreach ($payloads as $p) {
                 $productId = (int)($p['entity_id'] ?? 0);
@@ -898,9 +968,7 @@ class Data extends AbstractHelper
             $store = $this->storeManager->getDefaultStoreView() ?? $this->storeManager->getStore();
             $storeCode = $store->getCode();
 
-            $productCollection = \Magento\Framework\App\ObjectManager::getInstance()
-                ->get(\Magento\Catalog\Model\ResourceModel\Product\CollectionFactory::class)
-                ->create();
+            $productCollection = $this->productCollectionFactory->create();
             $productCollection->addAttributeToSelect('entity_id')
                 ->addAttributeToFilter('status', ['eq' => \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_ENABLED])
                 ->setPageSize(1);
@@ -920,9 +988,7 @@ class Data extends AbstractHelper
 
             // sendBulkPayload() already persisted the specific error into SyncBlockManager
             // (if it was a 402) — surface that exact message here.
-            $blockState = \Magento\Framework\App\ObjectManager::getInstance()
-                ->get(\NexorAIQ\Connector\Model\SyncBlockManager::class)
-                ->getState();
+            $blockState = $this->syncBlockManager->getState();
 
             if (!empty($blockState['is_blocked'])) {
                 return [
@@ -940,38 +1006,36 @@ class Data extends AbstractHelper
 
     public function startImport(string $integrationId, string $mode = 'background'): ?array
     {
-        if (!$this->isEnabled()) return null;
+        if (!$this->isEnabled()) {
+            return null;
+        }
         $url = $this->getApiUrl() . '/import/start';
-        $ch  = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => json_encode(['integrationId' => $integrationId, 'mode' => $mode]),
-            CURLOPT_HTTPHEADER     => $this->authHeaders(),
-            CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_TIMEOUT        => 10,
-            CURLOPT_SSL_VERIFYPEER => $this->verifySsl(),
-        ]);
-        $res  = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $response = $this->apiRequest(
+            'POST',
+            $url,
+            $this->authHeaders(),
+            (string)json_encode(['integrationId' => $integrationId, 'mode' => $mode]),
+            3,
+            10
+        );
+        $res = $response['body'];
+        $code = $response['code'];
         return ($code >= 200 && $code < 300 && $res) ? json_decode($res, true) : null;
     }
 
     public function getImportStatus(string $jobId): ?array
     {
         $url = $this->getApiUrl() . '/import/jobs/' . $jobId;
-        $ch  = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER     => $this->authHeaders(),
-            CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_TIMEOUT        => 5,
-            CURLOPT_SSL_VERIFYPEER => $this->verifySsl(),
-        ]);
-        $res  = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $response = $this->apiRequest(
+            'GET',
+            $url,
+            $this->authHeaders(),
+            null,
+            3,
+            5
+        );
+        $res = $response['body'];
+        $code = $response['code'];
         return ($code >= 200 && $code < 300 && $res) ? json_decode($res, true) : null;
     }
 
@@ -1001,17 +1065,16 @@ class Data extends AbstractHelper
 
         // 2. Fallback to API query if no pushed config exists yet
         $url = $this->getApiUrl() . '/integrations/magento/active-store-views?forCron=1';
-        $ch  = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER     => $this->authHeaders(),
-            CURLOPT_CONNECTTIMEOUT => 3,
-            CURLOPT_TIMEOUT        => 5,
-            CURLOPT_SSL_VERIFYPEER => $this->verifySsl(),
-        ]);
-        $res  = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $response = $this->apiRequest(
+            'GET',
+            $url,
+            $this->authHeaders(),
+            null,
+            3,
+            5
+        );
+        $res = $response['body'];
+        $code = $response['code'];
 
         if ($code < 200 || $code >= 300 || !$res) {
             // API failed or not reachable — fallback: allow all active store views
@@ -1046,7 +1109,7 @@ class Data extends AbstractHelper
         $endpointUrl = $apiUrl . '/integrations/extension-status';
 
         $baseUrl = $this->storeManager->getStore()->getBaseUrl();
-        $productMetadata = \Magento\Framework\App\ObjectManager::getInstance()->get(\Magento\Framework\App\ProductMetadataInterface::class);
+        $productMetadata = $this->productMetadata;
 
         $payload = (string)json_encode([
             'connectionKey' => $connectionKey,
@@ -1055,23 +1118,16 @@ class Data extends AbstractHelper
             'magentoVersion'=> $productMetadata->getVersion()
         ]);
 
-        $ch = curl_init($endpointUrl);
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $payload,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER     => [
-                'Content-Type: application/json',
-                'X-Connection-Key: ' . $connectionKey
-            ],
-            CURLOPT_CONNECTTIMEOUT => 5,
-            CURLOPT_TIMEOUT        => 10,
-            CURLOPT_SSL_VERIFYPEER => $this->verifySsl(),
-        ]);
-
-        $res  = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $response = $this->apiRequest(
+            'POST',
+            $endpointUrl,
+            ['Content-Type' => 'application/json', 'X-Connection-Key' => $connectionKey],
+            $payload,
+            5,
+            10
+        );
+        $res = $response['body'];
+        $code = $response['code'];
 
         return ($code >= 200 && $code < 300);
     }
@@ -1090,20 +1146,17 @@ class Data extends AbstractHelper
 
         // Production routes have no /api prefix; fall back to it in case the API is mounted there.
         foreach (['/auth/connection-login', '/api/auth/connection-login'] as $path) {
-            $ch = curl_init($this->getApiUrl() . $path);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST           => true,
-                CURLOPT_POSTFIELDS     => json_encode(['connectionKey' => $key]),
-                CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'X-Connection-Key: ' . $key],
-                CURLOPT_CONNECTTIMEOUT => 5,
-                CURLOPT_TIMEOUT        => 15,
-                CURLOPT_SSL_VERIFYPEER => $this->verifySsl(),
-            ]);
-            $res   = curl_exec($ch);
-            $code  = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $error = curl_error($ch);
-            curl_close($ch);
+            $response = $this->apiRequest(
+                'POST',
+                $this->getApiUrl() . $path,
+                ['Content-Type' => 'application/json', 'X-Connection-Key' => $key],
+                (string)json_encode(['connectionKey' => $key]),
+                5,
+                15
+            );
+            $res = $response['body'];
+            $code = $response['code'];
+            $error = $response['error'];
 
             if ($code === 404) {
                 continue;

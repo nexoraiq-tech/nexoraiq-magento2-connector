@@ -128,6 +128,7 @@ type Mutation {
         sessionId: String!
         productId: String @doc(description: "Search hit externalId or websiteId_storeId_entityId, e.g. 1_1_20622")
         query: String @doc(description: "Search query the product was found with.")
+        source: String @doc(description: "trending for the search overlay trending products (query is then trending), otherwise blank.")
     ): Boolean! @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\TrackTelemetry") @doc(description: "Log a storefront CLICK event to NexorAIQ (logEvent) for the store view of the request")
 }
 

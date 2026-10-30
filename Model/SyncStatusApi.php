@@ -1,4 +1,8 @@
 <?php
+/**
+ * Copyright © 2026 NexorAIQ. All rights reserved.
+ */
+
 declare(strict_types=1);
 
 namespace NexorAIQ\Connector\Model;
@@ -6,6 +10,7 @@ namespace NexorAIQ\Connector\Model;
 use NexorAIQ\Connector\Api\SyncStatusInterface;
 use NexorAIQ\Connector\Api\Data\SyncStatusItemInterface;
 use NexorAIQ\Connector\Helper\Data as HelperData;
+use Magento\Framework\Webapi\Exception as WebapiException;
 use Psr\Log\LoggerInterface;
 
 class SyncStatusApi implements SyncStatusInterface
@@ -14,7 +19,8 @@ class SyncStatusApi implements SyncStatusInterface
         private readonly SyncStatusManager $syncStatusManager,
         private readonly HelperData        $helper,
         private readonly LoggerInterface   $logger
-    ) {}
+    ) {
+    }
 
     /**
      * Validate the supplied connection key against the stored Magento config value.
@@ -42,7 +48,7 @@ class SyncStatusApi implements SyncStatusInterface
     public function reset(string $key = '', string $storeCode = '', bool $full = false): string
     {
         if (!$this->validateKey($key)) {
-            return json_encode(['success' => false, 'error' => 'Unauthorized']);
+            throw new WebapiException(__('Unauthorized'), 0, WebapiException::HTTP_UNAUTHORIZED);
         }
 
         try {
@@ -70,7 +76,7 @@ class SyncStatusApi implements SyncStatusInterface
     public function updateBatch(string $key = '', array $items = []): string
     {
         if (!$this->validateKey($key)) {
-            return json_encode(['success' => false, 'error' => 'Unauthorized']);
+            throw new WebapiException(__('Unauthorized'), 0, WebapiException::HTTP_UNAUTHORIZED);
         }
 
         try {

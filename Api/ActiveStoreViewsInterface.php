@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright © 2025 NexoraIQ. All rights reserved.
+ * Copyright © 2025 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -24,6 +24,7 @@ interface ActiveStoreViewsInterface
      * @param string $key             The NexoraIQ connection key (auth).
      * @param mixed $activeStoreViews  Array of {code, name} objects or store view codes.
      * @return string JSON response.
+     * @throws \Magento\Framework\Webapi\Exception When the connection key is wrong (HTTP 401)
      */
     public function update(string $key, $activeStoreViews): string;
 }

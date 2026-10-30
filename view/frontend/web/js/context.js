@@ -1,5 +1,5 @@
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  *
  * Shopper context sent as headers with every NexorAIQ API call (GraphQL, search, autocomplete):
  * x-session-id, x-user-id ("user_" + base64(email) or "guest_1") and x-device. The Magento proxies

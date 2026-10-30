@@ -27,5 +27,19 @@
             "PRIMARY": true,
             "NEXORAIQ_SYNC_QUEUE_PRODUCT_ID": true
         }
+    },
+    "nexoraiq_sync_block": {
+        "column": {
+            "id": true,
+            "is_blocked": true,
+            "http_code": true,
+            "error_type": true,
+            "error_message": true,
+            "blocked_at": true,
+            "checked_at": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
     }
 }

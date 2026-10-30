@@ -12,6 +12,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional telemetry attribution metrics for advanced merchandising campaigns.
 - Enhanced multi-warehouse inventory batching for high-throughput enterprise catalogs.
 
+## [1.0.3] - 2026-10-30
+
+Magento Marketplace technical review fixes.
+
+### Fixed
+- Catalog indexer in "Update by Schedule" mode: product IDs from the changelog arrived as strings, so every scheduled product sync failed with a TypeError. IDs are now converted to integers.
+
+### Changed
+- All calls to the NexorAIQ API use Magento's HTTP client (`Magento\Framework\HTTP\Client\Curl`) instead of raw `curl_*` functions.
+- REST `sync-status/reset`, `sync-status/update-batch` and `active-store-views` answer HTTP 401 for a wrong connection key (they returned HTTP 200 before).
+- Product repository plugin: dependencies are injected instead of loaded through the object manager; review summaries are read from `review_entity_summary` (product reviews only), so the optional Magento_Review classes are not needed.
+- Multi-Source Inventory salable quantity is resolved in one adapter (`Model/Inventory/SalableQtyProvider`), only when MSI is enabled.
+- `composer.json` requires `magento/module-cron`, `magento/module-theme` and `laminas/laminas-uri`, which the module uses.
+- `parse_url()` replaced with `Laminas\Uri`; `RequestContext::detectDevice()` and `Attribution::normalize()` are no longer static.
+
+### Added
+- `i18n/en_US.csv` with all translatable strings.
+
+## [1.0.2] - 2026-10-29
+
+Magento Marketplace readiness and security release. Supports Magento Open Source / Adobe Commerce 2.4.6 - 2.4.9.
+
+### Security
+- `GET /V1/nexoraiq/ping` returned the integration access token, product count, store count and Magento version to callers **without a connection key**. It now returns them only for a valid connection key; anonymous calls only confirm the module is installed.
+- `GET /V1/nexoraiq/status` no longer exposes the Magento version and edition.
+- Connection key checks use constant-time comparison (`hash_equals`).
+- All output in the admin product sync panel and the admin plan card is escaped.
+
+### Added
+- `etc/csp_whitelist.xml`: allows `https://api.nexoraiq.tech` in `connect-src` for stores using Content Security Policy.
+- Analytics: CLICK, ADD_TO_CART and CONVERSION events carry `source` ("trending" for the search overlay's trending products, otherwise blank); trending products are sent with query "trending".
+- `composer.json` declares its version, PHP and Magento dependencies; MSI, GraphQL, CSP and Review are optional (`suggest`).
+
+### Changed
+- `nexoraiq_sync_block` is declared in `db_schema.xml`; tables are no longer created at runtime with raw SQL.
+- Dependencies are injected instead of fetched with the ObjectManager (Helper, admin product sync panel).
+- The Hyvä templates work with Hyvä versions without the CSP view model or Lucide icons (Heroicons fallback).
+- `StoreInfo` sets its no-cache headers through the REST response instead of `header()`.
+- The module version reported by the API is read from `composer.json`.
+- Removed `setup_version` from `module.xml` (declarative schema only).
+- README: compatibility table for 2.4.6 - 2.4.9, privacy section, theme support described accurately.
+
 ## [1.0.1] - 2026-10-28
 
 Maintenance and performance release focusing on inventory batch query optimizations, manual resync override control, stock-aware deduplication, and refined admin plan UI.

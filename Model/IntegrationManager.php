@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace NexorAIQ\Connector\Model;
 
-use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Module\PackageInfo;
 use Magento\Integration\Api\IntegrationServiceInterface;
 use Magento\Integration\Api\OauthServiceInterface;
 use NexorAIQ\Connector\Api\IntegrationInterface;
@@ -15,8 +15,9 @@ class IntegrationManager implements IntegrationInterface
     public function __construct(
         private readonly IntegrationServiceInterface $integrationService,
         private readonly OauthServiceInterface       $oauthService,
-        private readonly ProductMetadataInterface    $productMetadata,
-    ) {}
+        private readonly PackageInfo                 $packageInfo,
+    ) {
+    }
 
     public function getCredentials(): string
     {
@@ -64,10 +65,8 @@ class IntegrationManager implements IntegrationInterface
 
         return (string)json_encode([
             'extension'      => 'NexorAIQ_Connector',
-            'version'        => '2.1.0',
+            'version'        => (string)$this->packageInfo->getVersion('NexorAIQ_Connector'),
             'integration_ok' => (bool)$integration->getId(),
-            'magento_version'=> $this->productMetadata->getVersion(),
-            'edition'        => $this->productMetadata->getEdition(),
         ]);
     }
 }

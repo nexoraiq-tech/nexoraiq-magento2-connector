@@ -17,41 +17,14 @@ use Psr\Log\LoggerInterface;
 class SyncBlockManager
 {
     private const TABLE_NAME = 'nexoraiq_sync_block';
-    private static bool $tableChecked = false;
     private ?array $cachedState = null;
 
     public function __construct(
         private readonly ResourceConnection $resourceConnection,
         private readonly LoggerInterface $logger
-    ) {}
-
-    private function ensureTableExists(): void
-    {
-        if (self::$tableChecked) {
-            return;
-        }
-
-        try {
-            $connection = $this->resourceConnection->getConnection();
-            $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
-
-            if (!$connection->isTableExists($tableName)) {
-                $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
-                    `id` SMALLINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
-                    `is_blocked` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
-                    `http_code` SMALLINT UNSIGNED NULL,
-                    `error_type` VARCHAR(191) NULL,
-                    `error_message` TEXT NULL,
-                    `blocked_at` DATETIME NULL,
-                    `checked_at` DATETIME NULL
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-                $connection->query($sql);
-            }
-            self::$tableChecked = true;
-        } catch (\Throwable $e) {
-            $this->logger->error('NexoraIQ SyncBlockManager ensureTableExists failed: ' . $e->getMessage());
-        }
+    ) {
     }
+
 
     /**
      * Records a blocking API response (e.g. subscription expired, plan limit reached).
@@ -60,7 +33,6 @@ class SyncBlockManager
      */
     public function setBlocked(int $httpCode, string $errorType, string $errorMessage): void
     {
-        $this->ensureTableExists();
         $this->cachedState = null;
         try {
             $connection = $this->resourceConnection->getConnection();
@@ -94,7 +66,6 @@ class SyncBlockManager
      */
     public function clearBlock(): void
     {
-        $this->ensureTableExists();
         $this->cachedState = null;
         try {
             $connection = $this->resourceConnection->getConnection();
@@ -135,7 +106,6 @@ class SyncBlockManager
             return $this->cachedState;
         }
 
-        $this->ensureTableExists();
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);

@@ -42,7 +42,8 @@ class CreateNexoraIQIntegration implements DataPatchInterface
         private readonly OauthServiceInterface         $oauthService,
         private readonly AuthorizationServiceInterface $authorizationService,
         private readonly WriterInterface               $configWriter,
-    ) {}
+    ) {
+    }
 
     public function apply(): static
     {

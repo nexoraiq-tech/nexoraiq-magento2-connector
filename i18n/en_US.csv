@@ -1,0 +1,268 @@
+Never,Never
+"Sync Active","Sync Active"
+"Sync Paused","Sync Paused"
+Reason,Reason
+since,since
+"Update or renew your plan on the NexorAIQ portal, then click ""Check Subscription"" below to resume sync.","Update or renew your plan on the NexorAIQ portal, then click ""Check Subscription"" below to resume sync."
+"Invalid Product ID provided.","Invalid Product ID provided."
+"Product synced successfully to NexorAIQ.","Product synced successfully to NexorAIQ."
+"Sync failed: %1","Sync failed: %1"
+"Subscription is active — sync has resumed and a full reindex has been queued.","Subscription is active — sync has resumed and a full reindex has been queued."
+"Sync is still blocked. See NexorAIQ Indexer log for details.","Sync is still blocked. See NexorAIQ Indexer log for details."
+"Could not load your plan.","Could not load your plan."
+"This product is not available.","This product is not available."
+"Search results for: '%1'","Search results for: '%1'"
+Search,Search
+Home,Home
+"Go to Home Page","Go to Home Page"
+"NexorAIQ integration is disabled.","NexorAIQ integration is disabled."
+"No enabled product found to test sync with.","No enabled product found to test sync with."
+"Test sync succeeded — NexorAIQ accepted the product. Sync has resumed.","Test sync succeeded — NexorAIQ accepted the product. Sync has resumed."
+"Test sync failed — see NexorAIQ Indexer log for details.","Test sync failed — see NexorAIQ Indexer log for details."
+"Add your Connection Key and save the configuration first.","Add your Connection Key and save the configuration first."
+"NexorAIQ returned HTTP %1.","NexorAIQ returned HTTP %1."
+"The plan service is not available on the NexorAIQ API yet.","The plan service is not available on the NexorAIQ API yet."
+"Invalid connection key","Invalid connection key"
+"Add to Cart","Add to Cart"
+"NexorAIQ API key ""%1"" is not configured.","NexorAIQ API key ""%1"" is not configured."
+"NexorAIQ API is unreachable.","NexorAIQ API is unreachable."
+"NexorAIQ API request failed with status %1.","NexorAIQ API request failed with status %1."
+"NexorAIQ API returned an invalid response.","NexorAIQ API returned an invalid response."
+"Search Page URL ""%1"" is invalid. Use letters, numbers, ""-"" and ""_"", with ""/"" between parts (e.g. ""search"" or ""shop/search"").","Search Page URL ""%1"" is invalid. Use letters, numbers, ""-"" and ""_"", with ""/"" between parts (e.g. ""search"" or ""shop/search"")."
+"Search Page URL ""%1"" is reserved by Magento. Choose another path.","Search Page URL ""%1"" is reserved by Magento. Choose another path."
+"Open Mini Cart","Open Mini Cart"
+"Show Success Message Only","Show Success Message Only"
+"Go to Shopping Cart Page","Go to Shopping Cart Page"
+5,5
+10,10
+15,15
+20,20
+"100 (Low Load - Default)","100 (Low Load - Default)"
+"150 (Balanced Load)","150 (Balanced Load)"
+"200 (High Load)","200 (High Load)"
+"300 (Maximum Load)","300 (Maximum Load)"
+Attributes,Attributes
+Category,Category
+"1 Column","1 Column"
+"2 Columns","2 Columns"
+30,30
+40,40
+Autocomplete,Autocomplete
+"Overlay Layout","Overlay Layout"
+12,12
+24,24
+36,36
+48,48
+60,60
+Keyword,Keyword
+Vector,Vector
+Hybrid,Hybrid
+3,3
+8,8
+"NexorAIQ integration not found. Run ""bin/magento setup:upgrade"" to create it.","NexorAIQ integration not found. Run ""bin/magento setup:upgrade"" to create it."
+"NexorAIQ integration has no active token. Go to System → Integrations → NexorAIQ | AI Commerce Search → Reactivate.","NexorAIQ integration has no active token. Go to System → Integrations → NexorAIQ | AI Commerce Search → Reactivate."
+"storeId must be specified","storeId must be specified"
+Unauthorized,Unauthorized
+"Managed by NexorAIQ_Connector. Disable the module to remove.","Managed by NexorAIQ_Connector. Disable the module to remove."
+"Managed by NexorAIQ","Managed by NexorAIQ"
+"""%1"" is managed by NexorAIQ and cannot be deleted from here. To remove it, uninstall the NexorAIQ_Connector module: bin/magento module:disable NexorAIQ_Connector && bin/magento setup:upgrade","""%1"" is managed by NexorAIQ and cannot be deleted from here. To remove it, uninstall the NexorAIQ_Connector module: bin/magento module:disable NexorAIQ_Connector && bin/magento setup:upgrade"
+Suggestions,Suggestions
+Categories,Categories
+Brands,Brands
+"NexorAIQ Extension is disabled in Stores > Configuration. Set ""Enable Extension"" to ""Yes"" to enable product sync.","NexorAIQ Extension is disabled in Stores > Configuration. Set ""Enable Extension"" to ""Yes"" to enable product sync."
+"NexorAIQ Connection Key is missing. Configure your Connection Key in Stores > Configuration to enable product sync.","NexorAIQ Connection Key is missing. Configure your Connection Key in Stores > Configuration to enable product sync."
+"Activate at least one store view in NexorAIQ Dashboard to enable product sync.","Activate at least one store view in NexorAIQ Dashboard to enable product sync."
+"Product ID:","Product ID:"
+"Product SKU:","Product SKU:"
+"Product Status:","Product Status:"
+Enabled,Enabled
+Disabled,Disabled
+"Extension Status:","Extension Status:"
+"Sync Now to NexorAIQ","Sync Now to NexorAIQ"
+"Store View Index Statuses","Store View Index Statuses"
+"Store View","Store View"
+Code,Code
+"Index Sync Status","Index Sync Status"
+"Last Synced At","Last Synced At"
+"Indexed Fields","Indexed Fields"
+"Synced & Active","Synced & Active"
+"Not Synced / Pending","Not Synced / Pending"
+more,more
+"NexorAIQ Extension Disabled","NexorAIQ Extension Disabled"
+"The NexorAIQ extension is currently disabled in Stores > Configuration > NexorAIQ | AI Commerce Search. Set ""Enable Extension"" to ""Yes"" and configure your Connection Key to enable indexing.","The NexorAIQ extension is currently disabled in Stores > Configuration > NexorAIQ | AI Commerce Search. Set ""Enable Extension"" to ""Yes"" and configure your Connection Key to enable indexing."
+"Connection Key Missing","Connection Key Missing"
+"Your NexorAIQ Connection Key is not configured. Paste your Connection Key in Stores > Configuration > NexorAIQ | AI Commerce Search to enable product indexing.","Your NexorAIQ Connection Key is not configured. Paste your Connection Key in Stores > Configuration > NexorAIQ | AI Commerce Search to enable product indexing."
+"No Active Store Views Enabled","No Active Store Views Enabled"
+"Activate store views in your NexorAIQ Dashboard Integration Center to enable indexing and product synchronization.","Activate store views in your NexorAIQ Dashboard Integration Center to enable indexing and product synchronization."
+"Show less","Show less"
+"Syncing product...","Syncing product..."
+"Success! Reloading...","Success! Reloading..."
+"Sync failed. Please check system.log","Sync failed. Please check system.log"
+"An error occurred while calling the sync endpoint.","An error occurred while calling the sync endpoint."
+"NexorAIQ | AI Commerce Search","NexorAIQ | AI Commerce Search"
+"AI Commerce Search Connector","AI Commerce Search Connector"
+"Syncs your catalog to NexorAIQ and powers AI search, autocomplete and the search results page on Hyvä and Luma storefronts.","Syncs your catalog to NexorAIQ and powers AI search, autocomplete and the search results page on Hyvä and Luma storefronts."
+"Version %1","Version %1"
+"Hyvä + Luma","Hyvä + Luma"
+Extension,Extension
+Connection,Connection
+"Key configured","Key configured"
+"Key missing","Key missing"
+"Products synced","Products synced"
+"%1 queued","%1 queued"
+"Last: %1","Last: %1"
+"Store views","Store views"
+"%1 active","%1 active"
+"Real-time sync: %1","Real-time sync: %1"
+"Loading your plan…","Loading your plan…"
+"Current plan","Current plan"
+/month,/month
+/year,/year
+or,or
+Free,Free
+"Plan limits","Plan limits"
+"Plan / Usage this period","Plan / Usage this period"
+Used,Used
+Limit,Limit
+Remaining,Remaining
+Unlimited,Unlimited
+"Usage resets on","Usage resets on"
+"period started","period started"
+"Included features","Included features"
+"Upgrade Plan","Upgrade Plan"
+Opening…,Opening…
+Refresh,Refresh
+"Opens Plan & Subscription in a new tab, already signed in.","Opens Plan & Subscription in a new tab, already signed in."
+"Free trial ends","Free trial ends"
+"Your free trial has ended","Your free trial has ended"
+"days left","days left"
+"day left","day left"
+"Could not load your plan","Could not load your plan"
+"Try again","Try again"
+"NexorAIQ did not return a login link. Please try again.","NexorAIQ did not return a login link. Please try again."
+"Your browser blocked the new tab. Allow pop-ups for this page and try again.","Your browser blocked the new tab. Allow pop-ups for this page and try again."
+"Request failed. Please try again.","Request failed. Please try again."
+Adding...,Adding...
+Added,Added
+"%1 results","%1 results"
+"View all %1 results","View all %1 results"
+"No products found.","No products found."
+"No products found for ""%1"".","No products found for ""%1""."
+"Minimum Search query length is %1","Minimum Search query length is %1"
+Store,Store
+"Search entire store here...","Search entire store here..."
+Searching...,Searching...
+"No suggestions found.","No suggestions found."
+"Search Suggestions","Search Suggestions"
+Close,Close
+"Close search","Close search"
+Products,Products
+"Out of stock","Out of stock"
+"Choose Options","Choose Options"
+"Refine search","Refine search"
+Price,Price
+Availability,Availability
+"In stock only","In stock only"
+"%1 and above","%1 and above"
+"%1 and below","%1 and below"
+"%1 Item","%1 Item"
+"%1 Items","%1 Items"
+"Items %1-%2 of %3","Items %1-%2 of %3"
+"Product list","Product list"
+"Enter a search term to find products.","Enter a search term to find products."
+"Search is temporarily unavailable. Please try again.","Search is temporarily unavailable. Please try again."
+"Your search ""%1"" returned no results.","Your search ""%1"" returned no results."
+"Clear all filters","Clear all filters"
+"Products view mode","Products view mode"
+Grid,Grid
+"Products view mode - Grid","Products view mode - Grid"
+List,List
+"Products view mode - List","Products view mode - List"
+"Sort By","Sort By"
+Relevance,Relevance
+Newest,Newest
+"Set Ascending Direction","Set Ascending Direction"
+"Set Descending Direction","Set Descending Direction"
+"Special Price","Special Price"
+"Regular Price","Regular Price"
+pagination,pagination
+"Previous Page","Previous Page"
+"Page %1","Page %1"
+"Next Page","Next Page"
+Show,Show
+"Show items per page","Show items per page"
+"Product filters","Product filters"
+"Shop By","Shop By"
+"Active filtering","Active filtering"
+"Remove active %1 filter: %2","Remove active %1 filter: %2"
+"Clear All","Clear All"
+"Skip to product list","Skip to product list"
+filter,filter
+"%1 filter options","%1 filter options"
+"Filter %1 %2","Filter %1 %2"
+"%1 filter, %2 available products","%1 filter, %2 available products"
+"Minimum price","Minimum price"
+"Maximum price","Maximum price"
+Apply,Apply
+From,From
+To,To
+"View as","View as"
+Page,Page
+Previous,Previous
+"You're currently reading page","You're currently reading page"
+Next,Next
+"per page","per page"
+"Now Shopping by","Now Shopping by"
+Remove,Remove
+"Remove This Item","Remove This Item"
+"Shopping Options","Shopping Options"
+items,items
+NexorAIQ,NexorAIQ
+General,General
+"General Settings","General Settings"
+"Enable Extension","Enable Extension"
+"Current Plan","Current Plan"
+"Subscription Status","Subscription Status"
+"Check Subscription","Check Subscription"
+"Connection Key","Connection Key"
+"NexorAIQ API URL","NexorAIQ API URL"
+"Public Search API Key","Public Search API Key"
+"Real-time Product Sync","Real-time Product Sync"
+"Bulk Sync Batch Size","Bulk Sync Batch Size"
+"Full Reindex Skip Window (minutes)","Full Reindex Skip Window (minutes)"
+"Active Store Views","Active Store Views"
+"Attributes Configuration","Attributes Configuration"
+"Extra Attributes to be Synced","Extra Attributes to be Synced"
+"Description Configuration","Description Configuration"
+"Ignore Description ?","Ignore Description ?"
+"Common Words to Remove","Common Words to Remove"
+"Brands Configuration","Brands Configuration"
+"Is it multi brand store?","Is it multi brand store?"
+"Identified Using?","Identified Using?"
+Attribute,Attribute
+"Is brand mandatory for sync?","Is brand mandatory for sync?"
+Storefront,Storefront
+"Storefront UI Configuration","Storefront UI Configuration"
+"Enable Storefront UI Takeover","Enable Storefront UI Takeover"
+"Search Type","Search Type"
+"Desktop Search Layout","Desktop Search Layout"
+"Mobile Search Layout","Mobile Search Layout"
+"Products Limit","Products Limit"
+"Layout Type","Layout Type"
+"Suggestions Label","Suggestions Label"
+"Suggestions Limit","Suggestions Limit"
+"Categories Label","Categories Label"
+"Categories Limit","Categories Limit"
+"Brands Label","Brands Label"
+"Brands Limit","Brands Limit"
+"Search Results Page","Search Results Page"
+"Enable Search Results Page","Enable Search Results Page"
+"Search Page URL","Search Page URL"
+"Products Per Page","Products Per Page"
+"Show Filters","Show Filters"
+"Add to Cart Button","Add to Cart Button"
+"Show on Search Overlay","Show on Search Overlay"
+"Show on Search Results Page","Show on Search Results Page"
+"Button Label","Button Label"
+"After Adding to Cart","After Adding to Cart"
+"NexorAIQ Search Sync Status","NexorAIQ Search Sync Status"

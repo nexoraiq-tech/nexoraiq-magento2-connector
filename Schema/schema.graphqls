@@ -1,4 +1,4 @@
-# Copyright © 2025 NexoraIQ. All rights reserved.
+# Copyright © 2025 NexorAIQ. All rights reserved.
 
 type Query {
     nexoraiQPing(key: String): NexoraiQPingResult @resolver(class: "NexorAIQ\\Connector\\Model\\Resolver\\Ping") @doc(description: "NexorAIQ connectivity ping")

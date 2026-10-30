@@ -1,5 +1,5 @@
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  *
  * NexorAIQ search results page (search/page.phtml + search/page/filters.phtml). Data comes from the
  * NexorAIQ GraphQL searchCatalog query; state lives here and in the URL (same parameter names as the

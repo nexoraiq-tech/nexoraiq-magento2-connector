@@ -1,5 +1,5 @@
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  *
  * Product hit helpers shared by the search overlay and the search results page: prices (special price,
  * variant ranges), URLs, stock, and GraphQL variant field support.

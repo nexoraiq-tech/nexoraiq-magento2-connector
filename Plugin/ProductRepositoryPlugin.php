@@ -1,14 +1,22 @@
 <?php
+/**
+ * Copyright © 2026 NexorAIQ. All rights reserved.
+ */
+
 declare(strict_types=1);
 
 namespace NexorAIQ\Connector\Plugin;
 
+use Magento\Catalog\Api\Data\ProductExtensionFactory;
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Api\Data\ProductSearchResultsInterface;
+use Magento\CatalogInventory\Api\Data\StockItemInterfaceFactory;
 use Magento\CatalogInventory\Api\StockRegistryInterface;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Store\Model\StoreManagerInterface;
 use NexorAIQ\Connector\Api\Data\ReviewSummaryInterfaceFactory;
+use NexorAIQ\Connector\Model\Inventory\SalableQtyProvider;
 use Psr\Log\LoggerInterface;
 
 class ProductRepositoryPlugin
@@ -19,11 +27,49 @@ class ProductRepositoryPlugin
         private readonly StockRegistryInterface $stockRegistry,
         private readonly StoreManagerInterface $storeManager,
         private readonly ReviewSummaryInterfaceFactory $reviewSummaryFactory,
-        private readonly \Magento\Framework\ObjectManagerInterface $objectManager,
         private readonly LoggerInterface $logger,
-        private readonly ?\Magento\Framework\App\ResourceConnection $resourceConnection = null,
-        private readonly ?\Magento\CatalogInventory\Api\Data\StockItemInterfaceFactory $stockItemFactory = null
-    ) {}
+        private readonly ResourceConnection $resourceConnection,
+        private readonly StockItemInterfaceFactory $stockItemFactory,
+        private readonly ProductExtensionFactory $productExtensionFactory,
+        private readonly SalableQtyProvider $salableQtyProvider
+    ) {
+    }
+
+    /**
+     * Review summaries (rating_summary, reviews_count) per product ID for one store view.
+     *
+     * Read from the review_entity_summary table so the optional Magento_Review module's classes
+     * are not needed; returns an empty array when the review tables are not installed.
+     *
+     * @param int[] $productIds
+     * @param int $storeId
+     * @return array<int, array{rating_summary: float, reviews_count: int}>
+     */
+    private function loadReviewSummaries(array $productIds, int $storeId): array
+    {
+        $conn = $this->resourceConnection->getConnection();
+        $summaryTable = $this->resourceConnection->getTableName('review_entity_summary');
+        $entityTable = $this->resourceConnection->getTableName('review_entity');
+        if (!$productIds || !$conn->isTableExists($summaryTable) || !$conn->isTableExists($entityTable)) {
+            return [];
+        }
+        $productEntityType = $conn->select()
+            ->from($entityTable, ['entity_id'])
+            ->where('entity_code = ?', 'product');
+        $select = $conn->select()
+            ->from($summaryTable, ['entity_pk_value', 'rating_summary', 'reviews_count'])
+            ->where('entity_pk_value IN (?)', array_map('intval', $productIds))
+            ->where('store_id = ?', $storeId)
+            ->where('entity_type IN (?)', $productEntityType);
+        $summaries = [];
+        foreach ($conn->fetchAll($select) as $row) {
+            $summaries[(int)$row['entity_pk_value']] = [
+                'rating_summary' => (float)$row['rating_summary'],
+                'reviews_count'  => (int)$row['reviews_count'],
+            ];
+        }
+        return $summaries;
+    }
 
     /**
      * Guards against stale generated ProductExtension code (e.g. mid-deploy on production
@@ -62,8 +108,7 @@ class ProductRepositoryPlugin
             $productId = $product->getId();
             $ext = $product->getExtensionAttributes();
             if (!$ext) {
-                $extFactory = $this->objectManager->get(\Magento\Catalog\Api\Data\ProductExtensionFactory::class);
-                $ext = $extFactory->create();
+                $ext = $this->productExtensionFactory->create();
             }
 
             // 1. Load Stock Item
@@ -73,21 +118,20 @@ class ProductRepositoryPlugin
                 if ($stockItem && $stockItem->getItemId()) {
                     $ext->setStockItem($stockItem);
                 }
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+
+            }
 
             // 2. Load Salable Qty
             try {
-                if (interface_exists('Magento\InventorySalesApi\Api\GetProductSalableQtyInterface')) {
-                    $getSalableQty = $this->objectManager->get('Magento\InventorySalesApi\Api\GetProductSalableQtyInterface');
-                    $stockResolver = $this->objectManager->get('Magento\InventorySalesApi\Api\StockResolverInterface');
-                    $websiteCode = $this->storeManager->getWebsite()->getCode();
-                    $stock = $stockResolver->execute(\Magento\InventorySalesApi\Api\Data\SalesChannelInterface::TYPE_WEBSITE, $websiteCode);
-                    $salableQty = $getSalableQty->execute($product->getSku(), $stock->getStockId());
-                    $this->setSalableQty($ext, (float)$salableQty);
-                } else {
-                    if ($stockItem) {
-                        $this->setSalableQty($ext, (float)$stockItem->getQty());
-                    }
+                $salableQty = $this->salableQtyProvider->get(
+                    (string)$product->getSku(),
+                    $this->storeManager->getWebsite()
+                );
+                if ($salableQty !== null) {
+                    $this->setSalableQty($ext, $salableQty);
+                } elseif ($stockItem) {
+                    $this->setSalableQty($ext, (float)$stockItem->getQty());
                 }
             } catch (\Throwable $e) {
                 if ($stockItem) {
@@ -97,21 +141,15 @@ class ProductRepositoryPlugin
 
             // 3. Load Review Summary
             try {
-                $storeId = $product->getStoreId() ?: $this->storeManager->getStore()->getId();
+                $storeId = (int)($product->getStoreId() ?: $this->storeManager->getStore()->getId());
+                $summary = $this->loadReviewSummaries([(int)$productId], $storeId)[(int)$productId] ?? null;
                 $reviewSummary = $this->reviewSummaryFactory->create();
-                
-                $summaryCollection = $this->objectManager->create(\Magento\Review\Model\ResourceModel\Review\Summary\Collection::class);
-                $summaryCollection->addFieldToFilter('entity_pk_value', $productId);
-                $summaryCollection->addFieldToFilter('store_id', $storeId);
-                $summary = $summaryCollection->getFirstItem();
-                
-                $ratingValue = $summary ? $summary->getRatingSummary() : 0;
-                $reviewsCount = $summary ? $summary->getReviewsCount() : 0;
-
-                $reviewSummary->setRatingSummary((float)$ratingValue);
-                $reviewSummary->setReviewsCount((int)$reviewsCount);
+                $reviewSummary->setRatingSummary($summary['rating_summary'] ?? 0.0);
+                $reviewSummary->setReviewsCount($summary['reviews_count'] ?? 0);
                 $this->setReviewSummary($ext, $reviewSummary);
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+                $this->logger->debug('NexorAIQ ProductRepositoryPlugin review summary failed: ' . $e->getMessage());
+            }
 
             $product->setExtensionAttributes($ext);
         } finally {
@@ -138,7 +176,7 @@ class ProductRepositoryPlugin
             $productIds = [];
             $skus = [];
             foreach ($products as $product) {
-                $productIds[] = $product->getId();
+                $productIds[] = (int)$product->getId();
                 $skus[] = $product->getSku();
             }
 
@@ -147,7 +185,7 @@ class ProductRepositoryPlugin
             // 1. Batch Load Stock Items via ResourceConnection (direct query to avoid DI adapter instantiation crash)
             $stockItemsMap = [];
             try {
-                $res = $this->resourceConnection ?? $this->objectManager->get(\Magento\Framework\App\ResourceConnection::class);
+                $res = $this->resourceConnection;
                 $conn = $res->getConnection();
                 $stockTable = $res->getTableName('cataloginventory_stock_item');
                 $select = $conn->select()
@@ -167,45 +205,34 @@ class ProductRepositoryPlugin
             // 2. Batch Load Review Summaries
             $summariesMap = [];
             try {
-                $summaryCollection = $this->objectManager->create(\Magento\Review\Model\ResourceModel\Review\Summary\Collection::class);
-                $summaryCollection->addFieldToFilter('entity_pk_value', ['in' => $productIds]);
-                $summaryCollection->addFieldToFilter('store_id', $storeId);
-                foreach ($summaryCollection as $summary) {
-                    $summariesMap[$summary->getEntityPkValue()] = $summary;
-                }
+                $summariesMap = $this->loadReviewSummaries($productIds, $storeId);
             } catch (\Throwable $e) {
+                $this->logger->debug('NexorAIQ ProductRepositoryPlugin review summaries failed: ' . $e->getMessage());
             }
 
             // 3. Batch Load MSI Salable Qty
             $salableQtyMap = [];
-            try {
-                if (interface_exists('Magento\InventorySalesApi\Api\GetProductSalableQtyInterface')) {
-                    $getSalableQty = $this->objectManager->get('Magento\InventorySalesApi\Api\GetProductSalableQtyInterface');
-                    $stockResolver = $this->objectManager->get('Magento\InventorySalesApi\Api\StockResolverInterface');
-                    $websiteCode = $this->storeManager->getWebsite()->getCode();
-                    $stock = $stockResolver->execute(\Magento\InventorySalesApi\Api\Data\SalesChannelInterface::TYPE_WEBSITE, $websiteCode);
-                    $stockId = $stock->getStockId();
-                    
-                    foreach ($skus as $sku) {
-                        try {
-                            $salableQtyMap[$sku] = (float)$getSalableQty->execute($sku, $stockId);
-                        } catch (\Throwable $e) {
-                        }
+            if ($this->salableQtyProvider->isAvailable()) {
+                $website = $this->storeManager->getWebsite();
+                foreach ($skus as $sku) {
+                    try {
+                        $salableQtyMap[$sku] = (float)$this->salableQtyProvider->get((string)$sku, $website);
+                    } catch (\Throwable $e) {
+                        // Composite products have no salable qty of their own.
+                        continue;
                     }
                 }
-            } catch (\Throwable $e) {
             }
 
             // 4. Enrich products using preloaded maps
-            $itemFactory = $this->stockItemFactory ?? $this->objectManager->get(\Magento\CatalogInventory\Api\Data\StockItemInterfaceFactory::class);
+            $itemFactory = $this->stockItemFactory;
             foreach ($products as $product) {
                 $productId = (int)$product->getId();
                 $sku = $product->getSku();
 
                 $ext = $product->getExtensionAttributes();
                 if (!$ext) {
-                    $extFactory = $this->objectManager->get(\Magento\Catalog\Api\Data\ProductExtensionFactory::class);
-                    $ext = $extFactory->create();
+                    $ext = $this->productExtensionFactory->create();
                 }
 
                 // Set Stock Item
@@ -246,12 +273,9 @@ class ProductRepositoryPlugin
 
                 // Set Review Summary
                 $summary = $summariesMap[$productId] ?? null;
-                $ratingValue = $summary ? $summary->getRatingSummary() : 0;
-                $reviewsCount = $summary ? $summary->getReviewsCount() : 0;
-
                 $reviewSummary = $this->reviewSummaryFactory->create();
-                $reviewSummary->setRatingSummary((float)$ratingValue);
-                $reviewSummary->setReviewsCount((int)$reviewsCount);
+                $reviewSummary->setRatingSummary($summary['rating_summary'] ?? 0.0);
+                $reviewSummary->setReviewsCount($summary['reviews_count'] ?? 0);
                 $this->setReviewSummary($ext, $reviewSummary);
 
                 $product->setExtensionAttributes($ext);

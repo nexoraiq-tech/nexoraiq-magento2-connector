@@ -25,7 +25,8 @@ class ProductAttributes implements OptionSourceInterface
 
     public function __construct(
         private readonly CollectionFactory $collectionFactory
-    ) {}
+    ) {
+    }
 
     public function toOptionArray(): array
     {

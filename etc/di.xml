@@ -180,6 +180,9 @@
     <type name="NexorAIQ\Connector\Helper\Data">
         <arguments>
             <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Webhook\Logger</argument>
+            <argument name="syncStatusManager" xsi:type="object">NexorAIQ\Connector\Model\SyncStatusManager\Proxy</argument>
+            <argument name="syncQueueManager" xsi:type="object">NexorAIQ\Connector\Model\SyncQueueManager\Proxy</argument>
+            <argument name="syncBlockManager" xsi:type="object">NexorAIQ\Connector\Model\SyncBlockManager\Proxy</argument>
         </arguments>
     </type>
     <type name="NexorAIQ\Connector\Model\SyncQueueManager">

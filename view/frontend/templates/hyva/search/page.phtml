@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  *
  * NexorAIQ search results page: product list column. Markup and theme classes follow the Hyvä category
  * page (Magento_Catalog::product/list.phtml, list/item.phtml, list/toolbar.phtml) so it looks the same.
@@ -31,7 +31,8 @@ use NexorAIQ\Connector\ViewModel\SearchPage;
 /** @var SearchPage $nxqPage */
 $nxqPage = $viewModels->require(SearchPage::class);
 /** @var LucideIcons $lucideIcons */
-$lucideIcons = $viewModels->require(LucideIcons::class);
+// Lucide icons ship with Hyvä 1.4+; older Hyvä (e.g. on Magento 2.4.6) has the same icons as Heroicons.
+$lucideIcons = $viewModels->require(class_exists(LucideIcons::class) ? LucideIcons::class : HeroiconsOutline::class);
 /** @var HeroiconsOutline $heroicons */
 $heroicons = $viewModels->require(HeroiconsOutline::class);
 $showAddToCart = $nxqPage->isAddToCartEnabled();
@@ -740,7 +741,7 @@ $pagerButtonClass = 'btn btn-secondary border-1 border-gray-300 rounded-3xl p-2 
         }, {once: true});
     })();
 </script>
-<?php $hyvaCsp->registerInlineScript() ?>
+<?php if (isset($hyvaCsp)) { $hyvaCsp->registerInlineScript(); } /* Hyvä 1.3.11+ CSP */ ?>
 <section class="py-8" id="product-list" aria-label="<?= $escaper->escapeHtmlAttr(__('Product list')) ?>" tabindex="-1"
          x-data="nxqSearchView">
     <div class="message info empty" x-cloak x-show="!s.query">

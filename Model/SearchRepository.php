@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright © 2025 NexoraIQ. All rights reserved.
+ * Copyright © 2025 NexorAIQ. All rights reserved.
  */
 
 declare(strict_types=1);
@@ -190,7 +190,8 @@ class SearchRepository implements SearchRepositoryInterface
         string $sessionId,
         ?string $productId = null,
         ?string $query = null,
-        ?int $storeId = null
+        ?int $storeId = null,
+        ?string $source = null
     ): bool {
         $eventType = strtoupper(trim($eventType));
         if (!in_array($eventType, [EventLogger::CLICK], true)) {
@@ -201,6 +202,7 @@ class SearchRepository implements SearchRepositoryInterface
             'sessionId' => $sessionId,
             'query'     => $query,
             'productId' => $this->eventLogger->normalizeProductId($productId),
+            'source'    => $source,
         ], $storeId);
 
         return $result !== null;

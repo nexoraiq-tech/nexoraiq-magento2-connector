@@ -1,12 +1,12 @@
 <?php
 /**
- * Copyright © 2026 NexoraIQ. All rights reserved.
+ * Copyright © 2026 NexorAIQ. All rights reserved.
  */
 declare(strict_types=1);
 
 namespace NexorAIQ\Connector\Model\Theme;
 
-use Magento\Framework\App\ObjectManager;
+use Magento\Framework\ObjectManagerInterface;
 use Magento\Framework\View\Design\ThemeInterface;
 use Magento\Framework\View\DesignInterface;
 
@@ -22,8 +22,16 @@ class ThemeDetector
     /** @var array<string, bool> */
     private array $cache = [];
 
+    /**
+     * Hyvä is optional, so its HyvaThemes service cannot be a constructor dependency; the object
+     * manager resolves it only after class_exists() confirms Hyvä is installed.
+     *
+     * @param DesignInterface $design
+     * @param ObjectManagerInterface $objectManager
+     */
     public function __construct(
-        private readonly DesignInterface $design
+        private readonly DesignInterface $design,
+        private readonly ObjectManagerInterface $objectManager
     ) {
     }
 
@@ -42,7 +50,7 @@ class ThemeDetector
         // Hyvä's own check also covers child themes registered as Hyvä base themes.
         if (class_exists(self::HYVA_THEMES_SERVICE)) {
             try {
-                return (bool)ObjectManager::getInstance()->get(self::HYVA_THEMES_SERVICE)->isHyvaTheme($theme);
+                return (bool)$this->objectManager->get(self::HYVA_THEMES_SERVICE)->isHyvaTheme($theme);
             } catch (\Throwable) {
                 // fall through to the theme hierarchy check
             }
