@@ -28,6 +28,8 @@ class Data extends AbstractHelper
 
     private ?array $activeStoreViewsCache = null;
 
+    private bool $activeStoreViewsLoaded = false;
+
     public function __construct(
         Context $context,
         private readonly EncryptorInterface $encryptor,
@@ -61,6 +63,12 @@ class Data extends AbstractHelper
     {
         $enabled = $this->scopeConfig->isSetFlag(self::CONFIG_ENABLED, ScopeInterface::SCOPE_STORE, $storeId);
         if (!$enabled) {
+            return false;
+        }
+
+        // Not connected to NexorAIQ yet: every API call would fail, so don't queue syncs,
+        // call the API or take over the storefront search.
+        if ($this->getConnectionKey($storeId) === '') {
             return false;
         }
 
@@ -1041,9 +1049,12 @@ class Data extends AbstractHelper
 
     public function getActiveStoreViews(): ?array
     {
-        if ($this->activeStoreViewsCache !== null) {
+        // Look up once per request: a failed or empty API answer (null) is remembered too,
+        // so the API is not called again on every product save.
+        if ($this->activeStoreViewsLoaded) {
             return $this->activeStoreViewsCache;
         }
+        $this->activeStoreViewsLoaded = true;
 
         // 1. Check pushed config first (instant local lookup without network call)
         $saved = $this->scopeConfig->getValue('nexoraiq/general/active_store_views', ScopeInterface::SCOPE_STORE);

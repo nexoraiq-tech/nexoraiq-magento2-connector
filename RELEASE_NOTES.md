@@ -1,16 +1,53 @@
 # NexorAIQ Magento 2 Connector — Release Notes
 
+## Version 1.0.4
+
+**Release Date:** November 2, 2026  
+**Module Name:** `NexorAIQ_Connector`  
+**Package:** `nexoraiq_tech/connector`  
+**Type:** Marketplace Varnish / MFTF test fixes  
+**Target Platforms:** Magento Open Source and Adobe Commerce 2.4.6 – 2.4.9  
+**PHP Versions:** 8.1 – 8.5
+
+**Upgrade:** `composer update nexoraiq_tech/connector`, then `bin/magento setup:upgrade`, `bin/magento setup:di:compile` and `bin/magento cache:flush`.
+
+* Fixed `setup:performance:generate-fixtures` failing on the `nexoraiq_sync_queue` table: the sync queue is written only after the save transaction is committed.
+* The connector stays inactive until a connection key is saved (no API calls, no sync queue, no search takeover).
+
+See CHANGELOG.md for the full list of changes.
+
+---
+
+## Version 1.0.3
+
+**Release Date:** October 30, 2026  
+**Module Name:** `NexorAIQ_Connector`  
+**Package:** `nexoraiq_tech/connector`  
+**Type:** Marketplace technical review fixes  
+**Target Platforms:** Magento Open Source and Adobe Commerce 2.4.6 – 2.4.9  
+**PHP Versions:** 8.1 – 8.5
+
+**Upgrade:** `composer update nexoraiq_tech/connector`, then `bin/magento setup:upgrade`, `bin/magento setup:di:compile` and `bin/magento cache:flush`.
+
+* Fixed `setup:di:compile` failing on PHP 8.4 / 8.5 (implicitly nullable parameters in the GraphQL resolvers).
+* Fixed scheduled ("Update by Schedule") catalog indexing.
+* All NexorAIQ API calls use Magento's HTTP client.
+
+See CHANGELOG.md for the full list of changes.
+
+---
+
 ## Version 1.0.2
 
 **Release Date:** October 29, 2026  
 **Module Name:** `NexorAIQ_Connector`  
-**Package:** `nexoraiq/connector`  
+**Package:** `nexoraiq_tech/connector`  
 **Type:** Security & Marketplace readiness release  
 **Target Platforms:** Magento Open Source and Adobe Commerce 2.4.6 – 2.4.9 (Mage-OS releases built on them)  
 **PHP Versions:** as supported by the Magento release: 8.1 – 8.2 (2.4.6), 8.2 – 8.3 (2.4.7), 8.3 – 8.4 (2.4.8), 8.5 (2.4.9)  
 **Themes:** Hyvä 1.3+, Luma, Blank and themes that inherit from them
 
-**Upgrade:** `composer update nexoraiq/connector`, then `bin/magento setup:upgrade`, `bin/magento setup:di:compile` (production mode) and `bin/magento cache:flush`. No configuration changes are needed. Merchants on earlier versions should regenerate the NexorAIQ integration's access token (System > Integrations > Reauthorize), because earlier versions could reveal it through the ping endpoint.
+**Upgrade:** `composer update nexoraiq_tech/connector`, then `bin/magento setup:upgrade`, `bin/magento setup:di:compile` (production mode) and `bin/magento cache:flush`. No configuration changes are needed. Merchants on earlier versions should regenerate the NexorAIQ integration's access token (System > Integrations > Reauthorize), because earlier versions could reveal it through the ping endpoint.
 
 See CHANGELOG.md for the full list of changes.
 
@@ -20,7 +57,7 @@ See CHANGELOG.md for the full list of changes.
 
 **Release Date:** October 28, 2026  
 **Module Name:** `NexorAIQ_Connector`  
-**Package:** `nexoraiq/connector`  
+**Package:** `nexoraiq_tech/connector`  
 **Type:** Maintenance & Performance Release  
 **Target Platforms:** Magento Open Source 2.4.4–2.4.9, Adobe Commerce 2.4.4–2.4.9, Mage-OS 2.4.x  
 **PHP Versions:** PHP 8.1, 8.2, 8.3, 8.4, 8.5  
@@ -55,7 +92,7 @@ See CHANGELOG.md for the full list of changes.
 
 **Release Date:** October 28, 2026  
 **Module Name:** `NexorAIQ_Connector`  
-**Package:** `nexoraiq/connector`  
+**Package:** `nexoraiq_tech/connector`  
 **Target Platforms:** Magento Open Source 2.4.4–2.4.9, Adobe Commerce 2.4.4–2.4.9, Mage-OS 2.4.x  
 **PHP Versions:** PHP 8.1, 8.2, 8.3, 8.4, 8.5 (PHP 8.5 recommended for Magento 2.4.9 production)  
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace NexorAIQ\Connector\Model;
 
 use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\Model\CallbackPool;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -36,6 +37,37 @@ class SyncQueueManager
             return;
         }
 
+        try {
+            $connection = $this->resourceConnection->getConnection();
+            $inTransaction = $connection->getTransactionLevel() > 0;
+        } catch (\Throwable $e) {
+            $this->logger->error('NexoraIQ SyncQueueManager enqueueBatch failed: ' . $e->getMessage());
+            return;
+        }
+
+        if ($inTransaction) {
+            // Called inside a DB transaction (product / stock save, order placement): write the
+            // queue row only after the transaction is committed, and drop it on rollback.
+            // Writing it inside the transaction breaks Magento's performance fixture generator
+            // (setup:performance:generate-fixtures), which replays every INSERT made while a
+            // template product is saved and requires each table to reference the product table.
+            CallbackPool::attach(
+                spl_object_hash($connection),
+                function () use ($productIds): void {
+                    $this->insertQueueRows($productIds);
+                }
+            );
+            return;
+        }
+
+        $this->insertQueueRows($productIds);
+    }
+
+    /**
+     * @param int[] $productIds
+     */
+    private function insertQueueRows(array $productIds): void
+    {
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);

@@ -12,11 +12,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional telemetry attribution metrics for advanced merchandising campaigns.
 - Enhanced multi-warehouse inventory batching for high-throughput enterprise catalogs.
 
+## [1.0.4] - 2026-11-02
+
+Magento Marketplace Varnish / MFTF test fixes.
+
+### Fixed
+- `bin/magento setup:performance:generate-fixtures` stopped with "The entity ID field for the 'nexoraiq_sync_queue' table wasn't found". Products are now added to the sync queue only after the product / stock / source item save transaction is committed (and not at all when it is rolled back), so no queue row is written inside the save transaction that the fixture generator records.
+- The connector no longer runs when no connection key is saved: it does not queue product syncs, call the NexorAIQ API or replace the storefront search until the store is connected.
+- The active store views lookup is done once per request, also when the NexorAIQ API is not reachable, instead of on every product save.
+
 ## [1.0.3] - 2026-10-30
 
 Magento Marketplace technical review fixes.
 
 ### Fixed
+- PHP 8.4 / 8.5: `bin/magento setup:di:compile` failed with "Implicitly marking parameter $value as nullable is deprecated" in the GraphQL resolvers `Search`, `Autocomplete` and `TrackTelemetry`. Their `$value` and `$args` parameters are now declared `?array` (works on PHP 8.1 - 8.5).
 - Catalog indexer in "Update by Schedule" mode: product IDs from the changelog arrived as strings, so every scheduled product sync failed with a TypeError. IDs are now converted to integers.
 
 ### Changed

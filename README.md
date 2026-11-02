@@ -81,10 +81,10 @@ See [Adobe Commerce system requirements](https://experienceleague.adobe.com/en/d
 Run the following command in your Magento root directory, provided the NexorAIQ Composer package repository is configured and your credentials grant access to the package:
 
 ```bash
-composer require nexoraiq/connector
+composer require nexoraiq_tech/connector
 ```
 
-**Package availability:** This command requires `nexoraiq/connector` to be published in a Composer repository available to your project. If you have not configured the repository or the package is not publicly available, use the installation/distribution instructions supplied by NexorAIQ rather than assuming Packagist can resolve it.
+**Package availability:** This command requires `nexoraiq_tech/connector` to be published in a Composer repository available to your project. If you have not configured the repository or the package is not publicly available, use the installation/distribution instructions supplied by NexorAIQ rather than assuming Packagist can resolve it.
 
 ### 2. Enable and Deploy
 
