@@ -1,9 +1,21 @@
 # NexorAIQ | AI Commerce Search - Magento 2 Connector
 
 <div align="center">
+
   <a href="https://www.nexoraiq.tech/">
-    <img src="https://www.nexoraiq.tech/artworks/01_logo_primary/svg/nexoraiq-logo-transparent.svg" alt="NexorAIQ — Search every product in any language" width="260" />
+    <picture>
+      <source
+        media="(prefers-color-scheme: dark)"
+        srcset="https://www.nexoraiq.tech/artworks/01_logo_primary/svg/nexoraiq-logo-dark-transparent.svg"
+      />
+      <img
+        src="https://www.nexoraiq.tech/artworks/01_logo_primary/svg/nexoraiq-logo-transparent.svg"
+        alt="NexorAIQ – Search every product in any language"
+        width="260"
+      />
+    </picture>
   </a>
+
   <p><strong>AI-powered search and multilingual product discovery for Magento.</strong></p>
   <p>
     <a href="https://github.com/nexoraiq-tech/nexoraiq-magento2-connector"><img src="https://img.shields.io/github/stars/nexoraiq-tech/nexoraiq-magento2-connector?style=flat-square&logo=github" alt="GitHub stars" /></a>
