@@ -72,8 +72,13 @@ class SyncQueueManager
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
 
-            $rows = array_map(static fn (int $id) => ['product_id' => $id], $productIds);
-            $connection->insertOnDuplicate($tableName, $rows, ['product_id']);
+            // created_at is refreshed when the product is already queued, so it always holds the
+            // time of the latest change (see CatalogAction's "synced after queued" skip rule).
+            $now = gmdate('Y-m-d H:i:s');
+            foreach (array_chunk($productIds, 1000) as $chunk) {
+                $rows = array_map(static fn (int $id) => ['product_id' => $id, 'created_at' => $now], $chunk);
+                $connection->insertOnDuplicate($tableName, $rows, ['created_at']);
+            }
             $this->logger->info(sprintf('NexoraIQ SyncQueueManager: enqueued %d product(s): %s', count($productIds), implode(',', $productIds)));
         } catch (\Throwable $e) {
             $this->logger->error('NexoraIQ SyncQueueManager enqueueBatch failed: ' . $e->getMessage());
@@ -87,12 +92,22 @@ class SyncQueueManager
      */
     public function dequeueBatch(int $limit): array
     {
+        return array_keys($this->dequeueBatchWithQueuedAt($limit));
+    }
+
+    /**
+     * Like dequeueBatch(), keyed by product ID with the UTC time it was (last) queued.
+     *
+     * @return array<int, string>
+     */
+    public function dequeueBatchWithQueuedAt(int $limit): array
+    {
         try {
             $connection = $this->resourceConnection->getConnection();
             $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
 
             $select = $connection->select()
-                ->from($tableName, ['entity_id', 'product_id'])
+                ->from($tableName, ['entity_id', 'product_id', 'created_at'])
                 ->order('entity_id ASC')
                 ->limit($limit);
             $rows = $connection->fetchAll($select);
@@ -104,9 +119,12 @@ class SyncQueueManager
             $entityIds = array_column($rows, 'entity_id');
             $connection->delete($tableName, ['entity_id IN (?)' => $entityIds]);
 
-            $productIds = array_values(array_unique(array_map(static fn ($row) => (int)$row['product_id'], $rows)));
-            $this->logger->info(sprintf('NexoraIQ SyncQueueManager: dequeued %d product(s).', count($productIds)));
-            return $productIds;
+            $queuedAt = [];
+            foreach ($rows as $row) {
+                $queuedAt[(int)$row['product_id']] = (string)$row['created_at'];
+            }
+            $this->logger->info(sprintf('NexoraIQ SyncQueueManager: dequeued %d product(s).', count($queuedAt)));
+            return $queuedAt;
         } catch (\Throwable $e) {
             $this->logger->error('NexoraIQ SyncQueueManager dequeueBatch failed: ' . $e->getMessage());
             return [];

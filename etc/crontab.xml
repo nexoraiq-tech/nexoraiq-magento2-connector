@@ -10,5 +10,8 @@
         <job name="nexoraiq_index_queue" instance="NexorAIQ\Connector\Cron\IndexQueue" method="execute">
             <schedule>* * * * *</schedule>
         </job>
+        <job name="nexoraiq_special_price_queue" instance="NexorAIQ\Connector\Cron\SpecialPriceQueue" method="execute">
+            <schedule>*/15 * * * *</schedule>
+        </job>
     </group>
 </config>

@@ -1,5 +1,27 @@
 # NexorAIQ Magento 2 Connector — Release Notes
 
+## Version 1.0.5
+
+**Release Date:** November 4, 2026  
+**Module Name:** `NexorAIQ_Connector`  
+**Package:** `nexoraiq/connector`  
+**Type:** Feature & Stability Release  
+**Target Platforms:** Magento Open Source and Adobe Commerce 2.4.6 – 2.4.9 (Mage-OS 2.4.x)  
+**PHP Versions:** 8.1 – 8.5  
+
+**Upgrade:** `composer update nexoraiq/connector`, then `bin/magento setup:upgrade`, `bin/magento setup:di:compile` and `bin/magento cache:flush`.
+
+* **Scheduled Special Price Queue**: Cron job `nexoraiq_special_price_queue` (runs every 15 minutes) automatically tracks and syncs products when special prices start or expire based on store view timezones.
+* **Store Timezone Validation**: Active special prices are validated against the store's timezone via `TimezoneInterface`; expired or pending special prices correctly send `null` so standard pricing remains accurate.
+* **Product Grid Mass Actions Interceptor**: Updates via catalog mass actions (status change, attribute update, website assignment) are now intercepted and queued for sync.
+* **Granular Enqueue Deduplication**: `SyncStatusManager::isSyncedAfter()` ensures queued updates are not prematurely skipped by deduplication if changes occurred after previous syncs.
+* **Resilient Logging (`SafeLogger`)**: All module loggers now suppress filesystem write permission errors to prevent store save or checkout disruptions.
+* **Admin UI Sync Status Visibility**: Restored visibility of the sync status container in admin product edit views.
+
+See CHANGELOG.md for the full list of changes.
+
+---
+
 ## Version 1.0.4
 
 **Release Date:** November 2, 2026  

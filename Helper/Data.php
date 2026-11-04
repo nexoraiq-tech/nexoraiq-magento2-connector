@@ -44,7 +44,8 @@ class Data extends AbstractHelper
         private readonly \NexorAIQ\Connector\Model\SyncQueueManager $syncQueueManager,
         private readonly \NexorAIQ\Connector\Model\SyncBlockManager $syncBlockManager,
         private readonly \Magento\Framework\HTTP\Client\CurlFactory $curlFactory,
-        private readonly \NexorAIQ\Connector\Model\Inventory\SalableQtyProvider $salableQtyProvider
+        private readonly \NexorAIQ\Connector\Model\Inventory\SalableQtyProvider $salableQtyProvider,
+        private readonly \Magento\Framework\Stdlib\DateTime\TimezoneInterface $timezone
     ) {
         parent::__construct($context);
     }
@@ -384,6 +385,30 @@ class Data extends AbstractHelper
     }
 
     /**
+     * Special price if it is active today for the store (Magento's own From/To date rule,
+     * To date inclusive), otherwise null. Keeps the raw attribute value, like before
+     * (a percentage for bundle products).
+     */
+    private function getActiveSpecialPrice(\Magento\Catalog\Model\Product $product, $store): ?float
+    {
+        $specialPrice = $product->getSpecialPrice();
+        if ($specialPrice === null || $specialPrice === '' || $specialPrice === false) {
+            return null;
+        }
+        try {
+            $isActive = $this->timezone->isScopeDateInInterval(
+                $store,
+                $product->getSpecialFromDate(),
+                $product->getSpecialToDate()
+            );
+        } catch (\Throwable $e) {
+            $this->logger->warning('NexoraIQ special price date check failed', ['sku' => $product->getSku(), 'error' => $e->getMessage()]);
+            $isActive = true;
+        }
+        return $isActive ? (float)$specialPrice : null;
+    }
+
+    /**
      * [min, max] final price, from the children for configurable / bundle / grouped products.
      *
      * @return float[]
@@ -684,7 +709,11 @@ class Data extends AbstractHelper
             'price_min' => $priceMin,
             'price_max' => $priceMax,
             'has_variants' => $hasVariants,
-            'special_price' => $product->getSpecialPrice() ? (float)$product->getSpecialPrice() : null,
+            // Only an active special price (today within From/To in the store's timezone); an
+            // expired or not-yet-started one is sent as null so NexorAIQ uses the regular price.
+            'special_price' => $this->getActiveSpecialPrice($product, $store),
+            'special_from_date' => $product->getSpecialFromDate() ?: null,
+            'special_to_date' => $product->getSpecialToDate() ?: null,
             'qty' => $qty,
             'stock_qty' => $qty,
             'salable_qty' => $salableQty !== null ? $salableQty : $qty,

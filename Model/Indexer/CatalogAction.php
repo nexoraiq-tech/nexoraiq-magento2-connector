@@ -41,11 +41,14 @@ class CatalogAction
      *
      * @param int[] $ids
      * @param bool $force Force sync without skipping recently synced products (used by manual UI sync/reindex)
+     * @param array<int, string> $queuedAt Product ID => UTC time it was queued (from Cron\IndexQueue).
+     *        For these products the skip only applies when they were synced after being queued, so a
+     *        change made soon after the previous sync (e.g. disabling a product) is never dropped.
      * @return int[] Product IDs that failed to sync for at least one store view — callers
      *               (e.g. Cron\IndexQueue) should re-queue these so a transient failure
      *               (API down, mapping error) is retried instead of silently dropped.
      */
-    public function execute(array $ids, bool $force = false): array
+    public function execute(array $ids, bool $force = false, array $queuedAt = []): array
     {
         // Mview (Update by Schedule) passes IDs as strings; the code below expects ints.
         $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
@@ -96,7 +99,10 @@ class CatalogAction
                     foreach ($chunkIds as $productId) {
                         try {
                             // Deduplication: If real-time webhook already synced this product with full stock within last 5 mins, skip duplicate bulk HTTP call
-                            if (!$force && $this->syncStatusManager->isRecentlySynced($productId, $storeId, 300, true)) {
+                            $alreadySynced = isset($queuedAt[$productId])
+                                ? $this->syncStatusManager->isSyncedAfter($productId, $storeId, $queuedAt[$productId], true)
+                                : $this->syncStatusManager->isRecentlySynced($productId, $storeId, 300, true);
+                            if (!$force && $alreadySynced) {
                                 $this->logger->info(sprintf('NexorAIQ Indexer: Product ID %d recently synced via real-time for store %s, skipping bulk sync.', $productId, $storeCode));
                                 continue;
                             }

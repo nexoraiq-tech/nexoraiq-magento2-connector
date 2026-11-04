@@ -53,6 +53,12 @@
                 sortOrder="10"/>
     </type>
 
+    <type name="Magento\Catalog\Model\Product\Action">
+        <plugin name="nexoraiq_product_mass_action_queue"
+                type="NexorAIQ\Connector\Plugin\ProductActionPlugin"
+                sortOrder="10"/>
+    </type>
+
     <type name="Magento\InventorySales\Model\PlaceReservationsForSalesEvent">
         <plugin name="nexoraiq_msi_inventory_reservation"
                 type="NexorAIQ\Connector\Plugin\InventoryReservationPlugin"
@@ -143,6 +149,16 @@
     </type>
 
     <!-- Observers -->
+    <type name="NexorAIQ\Connector\Plugin\ProductActionPlugin">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Observer\Logger</argument>
+        </arguments>
+    </type>
+    <type name="NexorAIQ\Connector\Cron\SpecialPriceQueue">
+        <arguments>
+            <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Cron\Logger</argument>
+        </arguments>
+    </type>
     <type name="NexorAIQ\Connector\Observer\ProductSaveAfter">
         <arguments>
             <argument name="logger" xsi:type="object">NexorAIQ\Connector\Logger\Observer\Logger</argument>

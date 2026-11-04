@@ -12,7 +12,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional telemetry attribution metrics for advanced merchandising campaigns.
 - Enhanced multi-warehouse inventory batching for high-throughput enterprise catalogs.
 
-## [1.0.4] - 2026-11-02
+## [1.0.5] - 2026-11-04
+
+Automated scheduled special price management, product mass action queueing, deduplication accuracy improvements, and logging fault tolerance.
+
+### Added
+- **Automated Scheduled Special Price Queue**: Added `Cron\SpecialPriceQueue` and `Model\SpecialPrice\ScheduledChangeFinder` running every 15 minutes (`nexoraiq_special_price_queue`) to automatically detect and queue products whose special price started or expired according to the store view's local timezone without requiring manual product re-saves.
+- **Product Mass Action Interceptor**: Added `Plugin\ProductActionPlugin` on `Magento\Catalog\Model\Product\Action` to automatically enqueue products updated via catalog grid mass actions (`updateAttributes` and `updateWebsites`) for background indexing.
+- **Queue Timestamp Tracking**: Added `dequeueBatchWithQueuedAt()` and updated `SyncQueueManager` to track UTC enqueue timestamps on duplicate keys.
+- **Granular Deduplication Check**: Added `SyncStatusManager::isSyncedAfter()` ensuring queued items are only skipped if a sync occurred strictly after the change was enqueued, preventing rapid successive edits (e.g., status/price changes) from being dropped.
+- **Fault-Tolerant Logging (`SafeLogger`)**: Introduced `Logger\SafeLogger` with custom exception handler so filesystem permission errors or log write failures under `var/log/NexoraIQ/` never interrupt core merchant or checkout workflows.
+
+### Changed
+- **Timezone-Aware Special Price Validation**: `Helper\Data` now validates `special_from_date` and `special_to_date` against the store view timezone using `TimezoneInterface::isScopeDateInInterval()`. Expired or future special prices resolve to `null`, ensuring regular pricing is indexed correctly. Special price date bounds are also forwarded in the product payload.
+- **Subsystem Loggers**: Refactored all connector subsystem loggers (`Admin`, `Api`, `Cron`, `GraphQl`, `Indexer`, `Observer`, `Plugin`, `Webhook`) to extend `SafeLogger`.
+
+### Fixed
+- **Admin Product Sync Status Visibility**: Removed `display: none` CSS rule on `[data-index="nexoraiq_sync_status"]` in `view/adminhtml/templates/product/sync_status.phtml` to ensure product sync status is visible in the admin edit view.
+
+
 
 Magento Marketplace Varnish / MFTF test fixes.
 

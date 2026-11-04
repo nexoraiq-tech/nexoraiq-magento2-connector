@@ -2,7 +2,7 @@
     "name": "nexoraiq/connector",
     "description": "NexorAIQ AI Commerce Search connector for Magento Open Source and Adobe Commerce 2.4.6 - 2.4.9 (Hyvä and Luma-based themes)",
     "type": "magento2-module",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "license": "proprietary",
     "authors": [
         {

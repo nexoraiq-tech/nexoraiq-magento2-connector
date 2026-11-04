@@ -278,6 +278,33 @@ class SyncStatusManager
     }
 
     /**
+     * True if the product was successfully synced for the store view strictly after $since
+     * (UTC 'Y-m-d H:i:s'), i.e. a sync already sent data newer than that change.
+     */
+    public function isSyncedAfter(int $productId, int $storeId, string $since, bool $requireStock = true): bool
+    {
+        try {
+            $connection = $this->resourceConnection->getConnection();
+            $tableName = $this->resourceConnection->getTableName(self::TABLE_NAME);
+
+            $select = $connection->select()
+                ->from($tableName, ['entity_id'])
+                ->where('product_id = ?', $productId)
+                ->where('store_id = ?', $storeId)
+                ->where('is_synced = 1')
+                ->where('last_synced_at > ?', $since);
+
+            if ($requireStock) {
+                $select->where("indexed_fields LIKE '%qty%' OR indexed_fields LIKE '%stock%'");
+            }
+
+            return !empty($connection->fetchOne($select));
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
      * Batched equivalent of isRecentlySynced() for a whole store view, used by a full reindex
      * to avoid one query per product. Returns the set of product IDs (from $productIds) that
      * were successfully synced for $storeId within the last $withinSeconds seconds.

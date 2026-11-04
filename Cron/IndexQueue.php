@@ -47,14 +47,15 @@ class IndexQueue
             return;
         }
 
-        $productIds = $this->syncQueueManager->dequeueBatch(self::DEQUEUE_LIMIT);
+        $queuedAt = $this->syncQueueManager->dequeueBatchWithQueuedAt(self::DEQUEUE_LIMIT);
+        $productIds = array_keys($queuedAt);
         if (empty($productIds)) {
             $this->logger->debug('NexoraIQ IndexQueue: queue empty, nothing to sync.');
             return;
         }
 
         $this->logger->info(sprintf('NexoraIQ IndexQueue: syncing %d queued product(s).', count($productIds)));
-        $failedProductIds = $this->catalogAction->execute($productIds);
+        $failedProductIds = $this->catalogAction->execute($productIds, false, $queuedAt);
 
         if (!empty($failedProductIds)) {
             $this->logger->warning(
