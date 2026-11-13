@@ -40,7 +40,10 @@
   </p>
 </div>
 
-The **NexorAIQ Connector** (`NexorAIQ_Connector`) is the official Magento 2 extension for integrating [NexorAIQ](https://www.nexoraiq.tech) AI-powered search, autocomplete, product discovery, and shopper telemetry.
+
+The **NexorAIQ Connector** (`NexorAIQ_Connector`) is the official Magento 2 extension for [NexorAIQ AI site search for Magento 2](https://www.nexoraiq.tech/integrations/magento): AI-powered search, autocomplete, product discovery, and shopper telemetry.
+
+Running Adobe Commerce? See [NexorAIQ for Adobe Commerce](https://www.nexoraiq.tech/integrations/adobe-commerce).
 
 It ships storefront search for **Hyvä** and for **Luma / Blank-based** themes (selected automatically per store view), and GraphQL / REST search endpoints that headless storefronts can call.
 
